@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lost Wages Calculator – Gig Workers</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: #f9f9f9;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.3rem;
+      font-size: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    table td {
+      padding: 0.5rem;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.7rem 1rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: #0077cc;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    .results {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .results p {
+      margin: 0.5rem 0;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lost Wages Calculator (Gig Workers)</h1>
+
+  <p>Enter actual daily earnings below (e.g. from Uber/Lyft/Instacart). Add as many days as needed:</p>
+
+  <table id="earningsTable">
+    <tr>
+      <td><input type="number" placeholder="Day 1 earnings"></td>
+    </tr>
+  </table>
+
+  <button onclick="addRow()">+ Add Another Day</button>
+  <button onclick="calculate()">Calculate</button>
+  <button onclick="shareLink()">Copy Shareable Link</button>
+
+  <div class="results" id="results"></div>
+
+  <script>
+    function addRow(value="") {
+      const table = document.getElementById("earningsTable");
+      const row = table.insertRow(-1);
+      const cell = row.insertCell(0);
+      cell.innerHTML = `<input type="number" placeholder="Day ${table.rows.length} earnings" value="${value}">`;
+    }
+
+    function calculate() {
+      const inputs = document.querySelectorAll("#earningsTable input");
+      let values = [];
+      inputs.forEach(inp => {
+        if (inp.value) values.push(parseFloat(inp.value));
+      });
+
+      if (values.length === 0) {
+        document.getElementById("results").innerHTML = "<p>Please enter at least one day of earnings.</p>";
+        return;
+      }
+
+      let total = values.reduce((a,b) => a+b, 0);
+      let days = values.length;
+      let avgDay = total / days;
+      let avgWeek = avgDay * 7;
+      let avgMonth = avgDay * 30.42;
+      let avgYear = avgDay * 365;
+
+      document.getElementById("results").innerHTML = `
+        <p><strong>Days Entered:</strong> ${days}</p>
+        <p><strong>Total Earnings:</strong> $${total.toFixed(2)}</p>
+        <p><strong>Average Per Day:</strong> $${avgDay.toFixed(2)}</p>
+        <p><strong>Estimated Per Week:</strong> $${avgWeek.toFixed(2)}</p>
+        <p><strong>Estimated Per Month:</strong> $${avgMonth.toFixed(2)}</p>
+        <p><strong>Estimated Per Year:</strong> $${avgYear.toFixed(2)}</p>
+      `;
+    }
+
+    function shareLink() {
+      const inputs = document.querySelectorAll("#earningsTable input");
+      let values = [];
+      inputs.forEach(inp => {
+        if (inp.value) values.push(inp.value);
+      });
+      if (values.length === 0) {
+        alert("Please enter earnings first.");
+        return;
+      }
+      let url = window.location.origin + window.location.pathname + "?data=" + values.join(",");
+      navigator.clipboard.writeText(url).then(() => {
+        alert("Shareable link copied!");
+      });
+    }
+
+    // Load from URL params
+    window.onload = function() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("data")) {
+        const arr = params.get("data").split(",");
+        document.getElementById("earningsTable").innerHTML = "";
+        arr.forEach(v => addRow(v));
+        calculate();
+      }
+    }
+  </script>
+</body>
+</html>
