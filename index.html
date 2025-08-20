@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lost Wages Calculator – Gig Workers</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: #f9f9f9;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 1rem;
+      display: block;
+    }
+    input, select {
+      padding: 0.5rem;
+      margin-top: 0.3rem;
+      font-size: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    table td {
+      padding: 0.5rem;
+    }
+    button {
+      margin: 0.5rem 0.3rem;
+      padding: 0.7rem 1rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: #0077cc;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    .results {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .results p {
+      margin: 0.5rem 0;
+      font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lost Wages Calculator (Gig Workers)</h1>
+
+  <label for="mode">Choose entry type:</label>
+  <select id="mode" onchange="switchMode()">
+    <option value="daily">Daily Earnings</option>
+    <option value="weekly">Weekly Earnings</option>
+  </select>
+
+  <table id="earningsTable">
+    <tr>
+      <td><input type="number" placeholder="Day 1 earnings"></td>
+    </tr>
+  </table>
+
+  <button onclick="addRow()">+ Add Another Entry</button>
+  <br>
+
+  <label for="missed">Missed days/weeks due to injury:</label>
+  <input type="number" id="missed" placeholder="e.g., 14">
+
+  <br>
+  <button onclick="calculate()">Calculate</button>
+  <button onclick="shareLink()">Copy Shareable Link</button>
+  <button onclick="downloadCSV()">Download CSV</button>
+  <button onclick="downloadPDF()">Download PDF</button>
+
+  <div class="results" id="results"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script>
+    let mode = "daily"; // default
+
+    function switchMode() {
+      mode = document.getElementById("mode").value;
+      document.getElementById("earningsTable").innerHTML = "";
+      addRow();
+    }
+
+    function addRow(value="") {
+      const table = document.getElementById("earningsTable");
+      const row = table.insertRow(-1);
+      const cell = row.insertCell(0);
+      const label = mode === "daily" ? "Day" : "Week";
+      cell.innerHTML = `<input type="number" placeholder="${label} ${table.rows.length} earnings" value="${value}">`;
+    }
+
+    function calculate() {
+      const inputs = document.querySelectorAll("#earningsTable input");
+      let values = [];
+      inputs.forEach(inp => {
+        if (inp.value) values.push(parseFloat(inp.value));
+      });
+
+      if (values.length === 0) {
+        document.getElementById("results").innerHTML = "<p>Please enter at least one entry.</p>";
+        return;
+      }
+
+      let total = values.reduce((a,b) => a+b, 0);
+      let entries = values.length;
+      let avgPerEntry = total / entries;
+
+      let avgDay, avgWeek, avgMonth, avgYear;
+      if (mode === "daily") {
+        avgDay = avgPerEntry;
+        avgWeek = avgDay * 7;
+      } else {
+        avgWeek = avgPerEntry;
+        avgDay = avgWeek / 7;
+      }
+      avgMonth = avgDay * 30.42;
+      avgYear = avgDay * 365;
+
+      let missed = parseInt(document.getElementById("missed").value) || 0;
+      let lostWages = missed * (mode === "daily" ? avgDay : avgWeek);
+
+      document.getElementById("results").innerHTML = `
+        <p><strong>Entries Entered:</strong> ${entries}</p>
+        <p><strong>Total Earnings:</strong> $${total.toFixed(2)}</p>
+        <p><strong>Average Per Day:</strong> $${avgDay.toFixed(2)}</p>
+        <p><strong>Average Per Week:</strong> $${avgWeek.toFixed(2)}</p>
+        <p><strong>Estimated Per Month:</strong> $${avgMonth.toFixed(2)}</p>
+        <p><strong>Estimated Per Year:</strong> $${avgYear.toFixed(2)}</p>
+        <p><strong>Missed Time (${missed} ${mode === "daily" ? "days" : "weeks"}):</strong> $${lostWages.toFixed(2)}</p>
+      `;
+    }
+
+    function shareLink() {
+      const inputs = document.querySelectorAll("#earningsTable input");
+      let values = [];
+      inputs.forEach(inp => {
+        if (inp.value) values.push(inp.value);
+      });
+      if (values.length === 0) {
+        alert("Please enter earnings first.");
+        return;
+      }
+      let missed = document.getElementById("missed").value || 0;
+      let url = window.location.origin + window.location.pathname + "?mode=" + mode + "&data=" + values.join(",") + "&missed=" + missed;
+      navigator.clipboard.writeText(url).then(() => {
+        alert("Shareable link copied!");
+      });
+    }
+
+    function downloadCSV() {
+      const inputs = document.querySelectorAll("#earningsTable input");
+      let values = [];
+      inputs.forEach((inp,i) => {
+        if (inp.value) values.push([mode + " " + (i+1), inp.value]);
+      });
+      if (values.length === 0) {
+        alert("No data to export");
+        return;
+      }
+      let csv = "Entry,Earnings\\n";
+      values.forEach(row => {
+        csv += row.join(",") + "\\n";
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "lost_wages.csv";
+      a.click();
+    }
+
+    async function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("Lost Wages Calculation", 10, 10);
+      const resultsText = document.getElementById("results").innerText.split("\\n");
+      let y = 20;
+      resultsText.forEach(line => {
+        doc.text(line, 10, y);
+        y += 10;
+      });
+      doc.save("lost_wages.pdf");
+    }
+
+    // Load from URL params
+    window.onload = function() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("mode")) {
+        document.getElementById("mode").value = params.get("mode");
+        mode = params.get("mode");
+      }
+      if (params.has("data")) {
+        const arr = params.get("data").split(",");
+        document.getElementById("earningsTable").innerHTML = "";
+        arr.forEach(v => addRow(v));
+      } else {
+        addRow();
+      }
+      if (params.has("missed")) {
+        document.getElementById("missed").value = params.get("missed");
+      }
+      if (params.has("data")) calculate();
+    }
+  </script>
+</body>
+</html>
