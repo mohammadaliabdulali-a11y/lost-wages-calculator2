@@ -1,192 +1,508 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Lost Wages Calculator – Blaszkow Legal</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
   <style>
-    body {
+    :root{
+      --brand:#b31b1b;
+      --bg:#f7f7f8;
+      --card:#ffffff;
+      --text:#222;
+      --muted:#666;
+    }
+    *{box-sizing:border-box}
+    body{
       font-family: Arial, sans-serif;
-      max-width: 1000px;
-      margin: 2rem auto;
-      padding: 1rem;
-      background: #f9f9f9;
-      color: #333;
+      background:var(--bg);
+      color:var(--text);
+      margin:0;
+      padding:0 1rem 3rem;
     }
-    header, footer {
-      text-align: center;
+    .container{
+      max-width:1100px;
+      margin:0 auto;
     }
-    h1 {
-      margin-top: 0.5rem;
+    header, footer{
+      text-align:center;
+      margin: 1.5rem 0;
     }
-    form {
-      background: #fff;
-      padding: 1.5rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 2rem;
+    header img{max-height:120px}
+    h1{margin:.5rem 0 0}
+    h2{margin:0 0 .75rem}
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:1rem;
+      box-shadow:0 4px 10px rgba(0,0,0,.06);
+      margin:1rem 0;
     }
-    label {
-      display: block;
-      margin-top: 0.5rem;
-      font-weight: bold;
+    .controls{
+      display:flex;
+      gap:.5rem;
+      flex-wrap:wrap;
     }
-    input {
-      width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.3rem;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+    button{
+      background:var(--brand);
+      color:#fff;
+      border:none;
+      border-radius:8px;
+      padding:.6rem .9rem;
+      cursor:pointer;
+      font-weight:600;
     }
-    button {
-      margin-top: 1rem;
-      padding: 0.7rem 1.2rem;
-      background: #b31b1b;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
+    button.secondary{ background:#0f62fe; }
+    button.ghost{ background:#eee; color:#222; }
+    button.danger{ background:#c43b3b; }
+    button:disabled{opacity:.6; cursor:not-allowed}
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:.5rem;
     }
-    button:hover {
-      background: #8a1414;
+    th, td{
+      border-bottom:1px solid #eee;
+      padding:.5rem;
+      text-align:right;
     }
-    canvas {
-      background: #fff;
-      padding: 1rem;
-      border-radius: 10px;
-      margin-top: 1rem;
+    th:first-child, td:first-child{ text-align:left; }
+    input[type="number"]{
+      width:100%;
+      padding:.4rem .5rem;
+      border:1px solid #ddd;
+      border-radius:6px;
+      text-align:right;
     }
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+      gap:1rem;
+    }
+    .muted{ color:var(--muted); }
+    .row-actions{ white-space:nowrap; }
+    .dropzone{
+      display:flex; align-items:center; justify-content:center;
+      min-height:90px; border:2px dashed #bbb; border-radius:10px;
+      padding:1rem; background:#fafafa; text-align:center; cursor:pointer;
+    }
+    .chips{ display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.5rem; }
+    .chip{ background:#eee; padding:.3rem .6rem; border-radius:999px; font-size:.9rem}
+    .calc-summary p{ margin:.3rem 0; }
+    footer p{ margin:.2rem 0; }
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <header>
-    <img src="new%20BLEGAL%20logo.jpg" alt="Blaszkow Legal Logo" style="max-height:120px;">
-    <h1>Lost Wages Calculator – Gig Workers</h1>
-    <h3>Blaszkow Legal, PLLC</h3>
-    <p>Attorney: Mohammad Ali Abdul Ali</p>
-    <p><em>Justice for the Injured</em></p>
-    <hr>
-  </header>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <img src="new%20BLEGAL%20logo.jpg" alt="Blaszkow Legal Logo">
+      <h1>Lost Wages Calculator – Gig Workers</h1>
+      <p><strong>Blaszkow Legal, PLLC</strong></p>
+      <p class="muted">Developer: Mohammad Ali Abdul Ali</p>
+      <hr>
+    </header>
 
-  <!-- Calculator Form -->
-  <form id="wagesForm">
-    <h2>Enter Your Earnings</h2>
+    <!-- Weeks Table -->
+    <section class="card">
+      <h2>Pre-Accident Weekly Earnings (6–8 weeks)</h2>
+      <div class="controls">
+        <button id="addWeekBtn">+ Add Week</button>
+        <button class="ghost" id="importBtn">Import CSV/XLSX</button>
+        <input id="filePicker" type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="display:none;">
+      </div>
 
-    <label for="trips">Trip Earnings ($):</label>
-    <input type="number" id="trips" step="0.01">
+      <table id="weeksTable" aria-label="Weekly earnings">
+        <thead>
+          <tr>
+            <th style="min-width:90px;">Week</th>
+            <th>Trips ($)</th>
+            <th>Tips ($)</th>
+            <th>Promotions ($)</th>
+            <th>Tolls ($)</th>
+            <th>Fees ($)</th>
+            <th>Other Adjustments ($)</th>
+            <th>Weekly Net ($)</th>
+            <th class="row-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="weeksBody">
+          <!-- rows injected here -->
+        </tbody>
+      </table>
+      <div class="muted">Weekly Net = Trips + Tips + Promotions + Tolls + Other Adjustments − Fees</div>
+    </section>
 
-    <label for="tips">Tips ($):</label>
-    <input type="number" id="tips" step="0.01">
+    <!-- Baseline + Lost Wages -->
+    <section class="card">
+      <h2>Baseline & Lost Wages</h2>
+      <div class="grid">
+        <div class="calc-summary">
+          <p><strong>Weeks Entered:</strong> <span id="weeksCount">0</span></p>
+          <p><strong>Baseline Average (Weekly):</strong> $<span id="avgWeekly">0.00</span></p>
+        </div>
+        <div>
+          <label for="missedWeeks"><strong>Weeks Missed</strong></label>
+          <input id="missedWeeks" type="number" min="0" step="1" value="0">
+        </div>
+        <div class="calc-summary">
+          <p><strong>Total Lost Wages:</strong> $<span id="totalLost">0.00</span></p>
+          <p class="muted">Calculated as Baseline × Weeks Missed</p>
+        </div>
+      </div>
+    </section>
 
-    <label for="promotions">Promotions / Incentives ($):</label>
-    <input type="number" id="promotions" step="0.01">
+    <!-- Screenshots -->
+    <section class="card">
+      <h2>Attach Screenshot Proof (Weekly Reports)</h2>
+      <label class="dropzone" for="shotsInput" id="shotsDrop">
+        Click to upload or drag & drop screenshots (JPG/PNG)
+        <input id="shotsInput" type="file" accept="image/png, image/jpeg" multiple style="display:none;">
+      </label>
+      <div class="chips" id="shotsList"></div>
+    </section>
 
-    <label for="adjustments">Adjustments ($):</label>
-    <input type="number" id="adjustments" step="0.01">
+    <!-- Export / Share -->
+    <section class="card">
+      <h2>Export & Share</h2>
+      <div class="controls">
+        <button class="secondary" id="exportPdfBtn">Download PDF Report</button>
+        <button class="ghost" id="shareBtn">Copy Shareable Link</button>
+        <button class="danger" id="clearBtn">Clear All</button>
+      </div>
+      <p class="muted">Shareable link includes all weekly values and weeks missed (no screenshots).</p>
+    </section>
 
-    <label for="fees">Uber/Lyft Fees ($):</label>
-    <input type="number" id="fees" step="0.01">
-
-    <label for="daysMissed">Days Missed:</label>
-    <input type="number" id="daysMissed">
-
-    <label for="avgPerDay">Average Daily Hours Worked:</label>
-    <input type="number" id="avgPerDay">
-
-    <button type="button" onclick="calculateWages()">Calculate Lost Wages</button>
-    <button type="button" onclick="exportPDF()">Export to PDF</button>
-  </form>
-
-  <!-- Results -->
-  <div id="results"></div>
-
-  <!-- Charts -->
-  <canvas id="pieChart" width="400" height="200"></canvas>
-  <canvas id="lineChart" width="400" height="200"></canvas>
-
-  <!-- Footer -->
-  <footer>
-    <hr>
-    <p>Created by Blaszkow Legal, PLLC</p>
-    <p>Attorney: Mohammad Ali Abdul Ali</p>
-    <p>⚖️ This calculator is for estimation purposes only. For legal advice, please contact our office directly.</p>
-  </footer>
+    <!-- Footer -->
+    <footer>
+      <hr>
+      <p>Created by Blaszkow Legal, PLLC</p>
+      <p class="muted">Developer: Mohammad Ali Abdul Ali</p>
+      <p class="muted">⚖️ This tool provides an estimate only and is not legal advice.</p>
+    </footer>
+  </div>
 
   <script>
-    let chart1, chart2;
+    // ==== STATE ====
+    const weeksBody = document.getElementById('weeksBody');
+    const weeksCountEl = document.getElementById('weeksCount');
+    const avgWeeklyEl = document.getElementById('avgWeekly');
+    const totalLostEl = document.getElementById('totalLost');
+    const missedWeeksEl = document.getElementById('missedWeeks');
 
-    function calculateWages() {
-      const trips = parseFloat(document.getElementById('trips').value) || 0;
-      const tips = parseFloat(document.getElementById('tips').value) || 0;
-      const promotions = parseFloat(document.getElementById('promotions').value) || 0;
-      const adjustments = parseFloat(document.getElementById('adjustments').value) || 0;
-      const fees = parseFloat(document.getElementById('fees').value) || 0;
-      const daysMissed = parseInt(document.getElementById('daysMissed').value) || 0;
-      const avgPerDay = parseFloat(document.getElementById('avgPerDay').value) || 0;
+    const shotsInput = document.getElementById('shotsInput');
+    const shotsDrop = document.getElementById('shotsDrop');
+    const shotsList = document.getElementById('shotsList');
+    let screenshotDataURLs = []; // data URLs of uploaded screenshots
 
-      const net = trips + tips + promotions + adjustments - fees;
-      const avgDailyEarnings = avgPerDay > 0 ? net / avgPerDay : net / 7;
-      const lostWages = avgDailyEarnings * daysMissed;
+    // ==== HELPERS ====
+    function money(n){ return (isFinite(n)? n:0).toFixed(2); }
+    function parseNum(v){ const n = parseFloat(v); return isFinite(n)? n: 0; }
 
-      document.getElementById('results').innerHTML = `
-        <h3>Results</h3>
-        <p><strong>Net Payout:</strong> $${net.toFixed(2)}</p>
-        <p><strong>Average Daily Earnings:</strong> $${avgDailyEarnings.toFixed(2)}</p>
-        <p><strong>Lost Wages:</strong> $${lostWages.toFixed(2)}</p>
-      `;
-
-      // Update Pie Chart
-      const pieData = [trips, tips, promotions, adjustments, fees];
-      if (chart1) chart1.destroy();
-      chart1 = new Chart(document.getElementById('pieChart'), {
-        type: 'pie',
-        data: {
-          labels: ['Trips', 'Tips', 'Promotions', 'Adjustments', 'Fees'],
-          datasets: [{
-            data: pieData,
-            backgroundColor: ['#4caf50','#2196f3','#ff9800','#9c27b0','#f44336']
-          }]
-        }
-      });
-
-      // Update Line Chart (just simulate categories as timeline)
-      if (chart2) chart2.destroy();
-      chart2 = new Chart(document.getElementById('lineChart'), {
-        type: 'line',
-        data: {
-          labels: ['Trips','Tips','Promotions','Adjustments','Fees'],
-          datasets: [{
-            label: 'Earnings Breakdown',
-            data: pieData,
-            borderColor: '#2196f3',
-            fill: false,
-            tension: 0.1
-          }]
-        }
-      });
+    function computeRowNet(row){
+      const [trips, tips, promo, tolls, fees, other] = [...row.querySelectorAll('input[type="number"]')]
+        .slice(0,6).map(i => parseNum(i.value));
+      return trips + tips + promo + tolls + other - fees;
     }
 
-    async function exportPDF() {
+    function recalc(){
+      // update nets per row
+      const rows = [...weeksBody.querySelectorAll('tr')];
+      let nets = [];
+      rows.forEach((tr)=>{
+        const net = computeRowNet(tr);
+        tr.querySelector('.net').textContent = money(net);
+        // count row if any value present
+        const hasAny = [...tr.querySelectorAll('input[type="number"]')].some(i=> i.value !== '' && i.value !== null);
+        if(hasAny) nets.push(net);
+      });
+
+      // baseline
+      const count = nets.length;
+      const avg = count ? (nets.reduce((a,b)=>a+b,0) / count) : 0;
+      weeksCountEl.textContent = count;
+      avgWeeklyEl.textContent = money(avg);
+
+      // lost wages
+      const missed = parseInt(missedWeeksEl.value || '0',10);
+      totalLostEl.textContent = money(avg * missed);
+    }
+
+    function addWeekRow(prefill){
+      const idx = weeksBody.children.length + 1;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>Week ${idx}</td>
+        <td><input type="number" step="0.01" placeholder="0.00" class="in trips"></td>
+        <td><input type="number" step="0.01" placeholder="0.00" class="in tips"></td>
+        <td><input type="number" step="0.01" placeholder="0.00" class="in promo"></td>
+        <td><input type="number" step="0.01" placeholder="0.00" class="in tolls"></td>
+        <td><input type="number" step="0.01" placeholder="0.00" class="in fees"></td>
+        <td><input type="number" step="0.01" placeholder="0.00" class="in other"></td>
+        <td>$<span class="net">0.00</span></td>
+        <td class="row-actions">
+          <button type="button" class="ghost small removeBtn">🗑 Remove</button>
+        </td>
+      `;
+      weeksBody.appendChild(tr);
+
+      if(prefill){
+        tr.querySelector('.trips').value = prefill.trips ?? '';
+        tr.querySelector('.tips').value = prefill.tips ?? '';
+        tr.querySelector('.promo').value = prefill.promotions ?? '';
+        tr.querySelector('.tolls').value = prefill.tolls ?? '';
+        tr.querySelector('.fees').value = prefill.fees ?? '';
+        tr.querySelector('.other').value = prefill.other ?? '';
+      }
+
+      tr.addEventListener('input', recalc);
+      tr.querySelector('.removeBtn').addEventListener('click', ()=>{
+        tr.remove();
+        // re-label remaining weeks
+        [...weeksBody.querySelectorAll('tr')].forEach((row,i)=>{
+          row.children[0].textContent = 'Week ' + (i+1);
+        });
+        recalc();
+      });
+
+      recalc();
+    }
+
+    function clearAll(){
+      weeksBody.innerHTML = '';
+      addWeekRow();
+      missedWeeksEl.value = 0;
+      screenshotDataURLs = [];
+      shotsList.innerHTML = '';
+      recalc();
+    }
+
+    // ==== FILE IMPORT (CSV/XLSX) ====
+    document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('filePicker').click());
+    document.getElementById('filePicker').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        const data = new Uint8Array(ev.target.result);
+        let rows = [];
+        if(file.name.toLowerCase().endsWith('.csv')){
+          const text = new TextDecoder().decode(data);
+          // quick CSV parse
+          const lines = text.split(/\r?\n/).filter(Boolean);
+          const headers = lines.shift().split(',').map(h=>h.trim().toLowerCase());
+          lines.forEach(line=>{
+            const cols = line.split(',');
+            rows.push(Object.fromEntries(headers.map((h,i)=>[h, cols[i]])));
+          });
+        } else {
+          const wb = XLSX.read(data, {type:'array'});
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json(ws); // array of objects
+        }
+
+        // expected keys (case-insensitive match)
+        // Trips, Tips, Promotions, Tolls, Fees, Other Adjustments
+        const mapVal = (obj, key) => {
+          // find column whose lowercase name equals key
+          const foundKey = Object.keys(obj).find(k => k.trim().toLowerCase() === key);
+          return parseNum(obj[foundKey]);
+        };
+
+        // Fill rows
+        weeksBody.innerHTML = '';
+        rows.forEach(r=>{
+          const norm = {};
+          // Lowercase-key copy
+          const low = {};
+          Object.keys(r).forEach(k=> low[k.trim().toLowerCase()] = r[k]);
+
+          norm.trips = mapVal(low,'trips');
+          norm.tips = mapVal(low,'tips');
+          norm.promotions = mapVal(low,'promotions');
+          norm.tolls = mapVal(low,'tolls');
+          norm.fees = mapVal(low,'fees');
+          norm.other = mapVal(low,'other adjustments');
+          // If row is empty, skip
+          const sum = (norm.trips||0)+(norm.tips||0)+(norm.promotions||0)+(norm.tolls||0)+(norm.other||0)+(norm.fees||0);
+          if(sum !== 0) addWeekRow(norm);
+        });
+
+        if(weeksBody.children.length === 0) addWeekRow();
+        recalc();
+      };
+      if(file.name.toLowerCase().endsWith('.csv')) reader.readAsArrayBuffer(file);
+      else reader.readAsArrayBuffer(file);
+    });
+
+    // ==== SCREENSHOTS ====
+    function handleShots(files){
+      [...files].forEach(file=>{
+        if(!file.type.match(/^image\/(png|jpeg)$/)) return;
+        const reader = new FileReader();
+        reader.onload = e=>{
+          screenshotDataURLs.push(e.target.result);
+          const div = document.createElement('div');
+          div.className='chip';
+          div.textContent = file.name;
+          shotsList.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    shotsInput.addEventListener('change', e=> handleShots(e.target.files));
+    shotsDrop.addEventListener('dragover', e=>{ e.preventDefault(); shotsDrop.style.background='#f0f6ff'; });
+    shotsDrop.addEventListener('dragleave', e=>{ shotsDrop.style.background='#fafafa'; });
+    shotsDrop.addEventListener('drop', e=>{
+      e.preventDefault(); shotsDrop.style.background='#fafafa';
+      handleShots(e.dataTransfer.files);
+    });
+    shotsDrop.addEventListener('click', ()=> shotsInput.click());
+
+    // ==== SHAREABLE LINK ====
+    function buildShareURL(){
+      // Serialize rows: each row as trips|tips|promotions|tolls|fees|other; separated by ;
+      const rows = [...weeksBody.querySelectorAll('tr')].map(tr=>{
+        const vals = [...tr.querySelectorAll('input[type="number"]')].slice(0,6).map(i=> i.value ? i.value : '');
+        // if all empty, skip
+        if(vals.every(v=>v==='')) return null;
+        return vals.join('|');
+      }).filter(Boolean);
+      const missed = missedWeeksEl.value || '0';
+      const params = new URLSearchParams();
+      if(rows.length) params.set('w', rows.join(';'));
+      params.set('missed', missed);
+      return window.location.origin + window.location.pathname + '?' + params.toString();
+    }
+
+    function loadFromURL(){
+      const q = new URLSearchParams(window.location.search);
+      const w = q.get('w');
+      const missed = q.get('missed');
+      weeksBody.innerHTML = '';
+      if(w){
+        w.split(';').forEach(row=>{
+          const [trips,tips,promotions,tolls,fees,other] = row.split('|').map(x=>x||'');
+          addWeekRow({trips, tips, promotions, tolls, fees, other});
+        });
+      } else {
+        // default empty rows to nudge users to 6–8
+        for(let i=0;i<6;i++) addWeekRow();
+      }
+      if(missed) missedWeeksEl.value = missed;
+      recalc();
+    }
+
+    // ==== PDF EXPORT ====
+    async function exportPDF(){
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
+      const doc = new jsPDF({ unit:'pt', format:'letter' });
+
+      // Header with logo
+      try{
+        const logo = await loadImage('new%20BLEGAL%20logo.jpg');
+        const logoW = 140, logoH = 70;
+        doc.addImage(logo, 'JPEG', 40, 30, logoW, logoH);
+      }catch(e){ /* logo optional */ }
 
       doc.setFontSize(16);
-      doc.text("Blaszkow Legal, PLLC", 10, 20);
-      doc.text("Attorney: Mohammad Ali Abdul Ali", 10, 30);
-      doc.text("Lost Wages Calculator Report", 10, 40);
+      doc.text('Blaszkow Legal, PLLC', 200, 55);
+      doc.setFontSize(11);
+      doc.text('Developer: Mohammad Ali Abdul Ali', 200, 75);
+      doc.setFontSize(14);
+      doc.text('Lost Wages Report', 40, 120);
 
-      const results = document.getElementById('results').innerText.split("\n");
-      let y = 60;
-      results.forEach(line => {
-        doc.text(line, 10, y);
-        y += 10;
+      // Summary numbers
+      const baseline = document.getElementById('avgWeekly').textContent;
+      const weeksEntered = document.getElementById('weeksCount').textContent;
+      const missed = missedWeeksEl.value || '0';
+      const totalLost = document.getElementById('totalLost').textContent;
+
+      doc.setFontSize(11);
+      let y = 145;
+      doc.text(`Weeks Entered: ${weeksEntered}`, 40, y); y+=18;
+      doc.text(`Baseline Average (Weekly): $${baseline}`, 40, y); y+=18;
+      doc.text(`Weeks Missed: ${missed}`, 40, y); y+=18;
+      doc.text(`Total Lost Wages: $${totalLost}`, 40, y); y+=24;
+
+      // Table header
+      doc.setFont(undefined, 'bold');
+      const headers = ['Week','Trips','Tips','Promotions','Tolls','Fees','Other Adj.','Weekly Net'];
+      let x = 40; y+=10;
+      headers.forEach((h,i)=>{ doc.text(h, x + i*70, y); });
+      doc.setFont(undefined, 'normal');
+      y += 14;
+
+      // Table rows
+      const rows = [...weeksBody.querySelectorAll('tr')];
+      rows.forEach((tr, i)=>{
+        const inputs = [...tr.querySelectorAll('input[type="number"]')].slice(0,6).map(i=> i.value ? parseFloat(i.value).toFixed(2) : '0.00');
+        const net = tr.querySelector('.net').textContent || '0.00';
+        const cols = [String(i+1), ...inputs, net];
+        cols.forEach((c,j)=> doc.text(c, 40 + j*70, y) );
+        y += 16;
+        if(y > 700){ doc.addPage(); y = 60; }
       });
 
-      doc.save("Lost_Wages_Report.pdf");
+      // Screenshots section
+      if(screenshotDataURLs.length){
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.text('Weekly Report Screenshots', 40, 50);
+        let imgY = 70;
+        for(const dataUrl of screenshotDataURLs){
+          // fit width to 520pt
+          const img = await imageFromDataURL(dataUrl);
+          const {w,h} = fitToWidth(img.width, img.height, 520);
+          if(imgY + h > 760){ doc.addPage(); imgY = 60; }
+          doc.addImage(img, 'JPEG', 40, imgY, w, h);
+          imgY += h + 20;
+        }
+      }
+
+      doc.save('Lost_Wages_Report.pdf');
     }
+
+    // Image helpers
+    function loadImage(src){
+      return new Promise((resolve, reject)=>{
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = ()=> resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+    function imageFromDataURL(dataURL){
+      return new Promise((resolve,reject)=>{
+        const img = new Image();
+        img.onload = ()=> resolve(img);
+        img.onerror = reject;
+        img.src = dataURL;
+      });
+    }
+    function fitToWidth(w,h,targetW){
+      const ratio = targetW / w;
+      return { w: targetW, h: h * ratio };
+    }
+
+    // ==== EVENTS ====
+    document.getElementById('addWeekBtn').addEventListener('click', ()=> addWeekRow());
+    missedWeeksEl.addEventListener('input', recalc);
+    document.getElementById('exportPdfBtn').addEventListener('click', exportPDF);
+    document.getElementById('clearBtn').addEventListener('click', clearAll);
+    document.getElementById('shareBtn').addEventListener('click', ()=>{
+      const url = buildShareURL();
+      navigator.clipboard.writeText(url).then(()=> alert('Shareable link copied to clipboard!'));
+    });
+
+    // ==== INIT ====
+    loadFromURL(); // prefill from link or create 6 empty rows by default
   </script>
 </body>
 </html>
