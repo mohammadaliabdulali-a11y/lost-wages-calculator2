@@ -29,12 +29,9 @@ th,td{border-bottom:1px solid #eee;padding:.5rem;text-align:right;vertical-align
 th:first-child,td:first-child{text-align:left}
 input[type="number"],input[type="text"],input[type="password"],input[type="date"],input[type="email"]{
   width:100%;padding:.6rem .7rem;border:1px solid #ddd;border-radius:8px;text-align:right;
-  font-size:16px; background:#fff;
+  font-size:16px;background:#fff
 }
-input.money{
-  min-width:160px; /* wider boxes for amounts */
-  font-variant-numeric: tabular-nums;
-}
+input.money{min-width:160px;font-variant-numeric:tabular-nums}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
 .muted{color:var(--muted)} .row-actions{white-space:nowrap} .help{font-size:.9rem;color:#666}
 .badge{display:inline-block;padding:.15rem .5rem;border-radius:999px;background:#eee;color:#333;font-size:.8rem;margin-left:.4rem}
@@ -42,6 +39,9 @@ input.money{
 .thumb-wrap{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
 .hidden{display:none}
 hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
+#baselinePanel{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:.75rem;margin-top:.5rem}
+#baselinePanel h4{margin:.1rem 0 .4rem;font-size:1rem}
+#baselineList{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9rem;line-height:1.3}
 </style>
 </head>
 <body>
@@ -151,7 +151,11 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
           <tbody id="preBody"></tbody>
         </table>
       </div>
-      <p class="help">Baseline Average (Weekly): $<b id="baselineAvg">0.00</b></p>
+      <div id="baselinePanel">
+        <h4>Baseline Breakdown (showing our math)</h4>
+        <div id="baselineList">No rows yet.</div>
+        <div class="help">Baseline Average (Weekly): $<b id="baselineAvg">0.00</b></div>
+      </div>
     </section>
 
     <!-- Post-Accident -->
@@ -304,6 +308,7 @@ $('#backBtn').addEventListener('click', ()=>{ show(dashboardSection); loadFormsT
 
 /* =========== Form: Pre/Post Rows =========== */
 const preBody=$('#preBody'), baselineAvgEl=$('#baselineAvg');
+const baselineListEl=$('#baselineList');
 const postBody=$('#postBody'), totalLostEl=$('#totalLost');
 
 function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
@@ -353,8 +358,8 @@ function addPreRow(data={}){
 $('#addPreWeekBtn').addEventListener('click', ()=> addPreRow());
 
 function recalcPre(){
-  let weeklyEquivs=[];
-  $$('#preBody tr').forEach(tr=>{
+  let weeklyEquivs=[]; let lines=[];
+  $$('#preBody tr').forEach((tr,idx)=>{
     const weeks=Math.max(0,parseInt(tr.querySelector('.preWeeks').value||'1',10));
     let days=Math.max(0,parseInt(tr.querySelector('.preDays').value||'0',10)); if(days>6) days=6;
     const factor=weeks+(days/7);
@@ -363,10 +368,23 @@ function recalcPre(){
     const total=trips+tips;
     const eq=factor>0? total/factor : 0;
     tr.querySelector('.preEq').textContent = fmt(eq);
-    if(total!==0) weeklyEquivs.push(eq);
+    if(total!==0){ weeklyEquivs.push(eq); lines.push(`[${idx+1}] ${tr.querySelector('.preStart').value||'—'}–${tr.querySelector('.preEnd').value||'—'} | (${fmt(trips)}+${fmt(tips)})/${factor.toFixed(2)} = ${fmt(eq)}`); }
   });
   const baseline=weeklyEquivs.length? weeklyEquivs.reduce((a,b)=>a+b,0)/weeklyEquivs.length : 0;
   baselineAvgEl.textContent = fmt(baseline);
+  // Baseline breakdown list in UI
+  if(lines.length===0){ baselineListEl.textContent='No rows yet.'; }
+  else {
+    const sum = weeklyEquivs.reduce((a,b)=>a+b,0);
+    baselineListEl.innerHTML = `
+      <div id="baselineListInner">
+        <div id="baselineRows">${lines.map(l=>`<div>${l}</div>`).join('')}</div>
+        <hr class="soft"/>
+        <div><b>Baseline = (sum of weekly equivalents) ÷ count</b></div>
+        <div>Sum = ${fmt(sum)} | Count = ${weeklyEquivs.length}</div>
+        <div><b>Baseline = ${fmt(sum)} ÷ ${weeklyEquivs.length} = ${fmt(baseline)}</b></div>
+      </div>`;
+  }
   recalcPost();
 }
 
@@ -421,9 +439,6 @@ function recalcPost(){
 /* =========== Save/Load Form =========== */
 $('#saveFormBtn').addEventListener('click', ()=>{ saveCurrentForm(); alert('Form saved'); });
 
-function getForms(){return JSON.parse(localStorage.getItem('lwForms')||'[]');}
-function setForms(arr){localStorage.setItem('lwForms',JSON.stringify(arr));}
-
 function collectForm(){
   const preWeeks = $$('#preBody tr').map(tr=>({
     start: tr.querySelector('.preStart').value || '',
@@ -453,6 +468,8 @@ function collectForm(){
     preWeeks, postWeeks
   };
 }
+function getForms(){return JSON.parse(localStorage.getItem(FORMS_KEY)||'[]');}
+function setForms(arr){localStorage.setItem(FORMS_KEY,JSON.stringify(arr));}
 function saveCurrentForm(){
   const forms=getForms(); const payload=collectForm();
   if(currentFormId!=null) forms[currentFormId]=payload; else { forms.push(payload); currentFormId=forms.length-1; }
@@ -502,38 +519,27 @@ function clearForm(){
   recalcPre(); recalcPost();
 }
 
-/* =========== Export PDF (one statement per page + summary) =========== */
+/* =========== Export PDF (statement pages + detailed summary) =========== */
 $('#exportPdfBtn').addEventListener('click', async ()=>{
   saveCurrentForm();
   const form=getForms()[currentFormId];
   const { jsPDF } = window.jspdf;
 
-  // Page measurements for US Letter in points
-  const pageW = 612, pageH = 792, margin = 40;
-  const contentW = pageW - margin*2;
+  const pageW = 612, pageH = 792, margin = 40, contentW = pageW - margin*2;
 
   const doc = new jsPDF({ unit:'pt', format:'letter' });
 
-  // Helper: load image
   const loadImage = (src)=>new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=src; });
 
-  // Header template (logo + header text)
   async function pageHeader(title, sub){
     let y = margin;
-    // Logo (optional)
     try{
       const img = await loadImage('new%20BLEGAL%20logo.jpg');
-      const logoW = 150;
-      const ratio = logoW / img.width;
-      const logoH = img.height * ratio;
+      const logoW = 150, ratio = logoW / img.width, logoH = img.height * ratio;
       doc.addImage(img,'JPEG',margin,y,logoW,logoH);
       y += logoH + 10;
-    }catch(e){
-      // no logo available
-      y += 10;
-    }
-    doc.setFontSize(16);
-    doc.text(title, margin, y); y += 18;
+    }catch(e){ y += 10; }
+    doc.setFontSize(16); doc.text(title, margin, y); y += 18;
     doc.setFontSize(11);
     (sub||[]).forEach(line => { 
       const wrapped = doc.splitTextToSize(line, contentW);
@@ -544,7 +550,6 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
     return y;
   }
 
-  // Compute baseline from weekly equivalents
   function computeBaseline(preWeeks){
     const eqs=(preWeeks||[]).map(w=>{
       const weeks=parseInt(w.weeks||1,10)||0;
@@ -553,12 +558,15 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
       const total=num(w.trips)+num(w.tips);
       return (total!==0 && factor>0) ? (total/factor) : null;
     }).filter(v=>v!==null);
-    if(eqs.length===0) return 0;
-    return eqs.reduce((a,b)=>a+b,0)/eqs.length;
+    if(eqs.length===0) return {baseline:0,sum:0,count:0,eqs:[]};
+    const sum = eqs.reduce((a,b)=>a+b,0);
+    const baseline = sum/eqs.length;
+    return {baseline,sum,count:eqs.length,eqs};
   }
-  const baseline = computeBaseline(form.preWeeks||[]);
+  const baseInfo = computeBaseline(form.preWeeks||[]);
+  const baseline = baseInfo.baseline;
 
-  // PRE PAGES (one per statement)
+  // PRE PAGES (one per pre statement)
   for(let i=0;i<(form.preWeeks||[]).length;i++){
     if(i>0) doc.addPage();
     const w=form.preWeeks[i];
@@ -567,7 +575,6 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
       `Statement: ${w.start||'—'} to ${w.end||'—'}`
     ]);
 
-    // Details block
     const weeks = parseInt(w.weeks||1,10)||0;
     const days  = parseInt(w.days ||0,10)||0;
     const factor= weeks + (days/7);
@@ -584,13 +591,11 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
       doc.text(wrapped, margin, y); y+=16*wrapped.length;
     });
 
-    // Images (each scaled to content width)
     for(const dataUrl of (w.images||[])){
       try{
         const img = await loadImage(dataUrl);
-        const maxW = contentW;
-        const ratio = maxW / img.width;
-        const wpt = maxW, hpt = img.height * ratio;
+        const ratio = contentW / img.width;
+        const wpt = contentW, hpt = img.height * ratio;
         if(y + hpt > pageH - margin){ doc.addPage(); y = await pageHeader('Pre-Accident Statement', [
           `Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,
           `Statement: ${w.start||'—'} to ${w.end||'—'}`
@@ -601,7 +606,7 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
     }
   }
 
-  // POST PAGES (one per statement)
+  // POST PAGES (one per post statement)
   let totalLost = 0;
   for(let i=0;i<(form.postWeeks||[]).length;i++){
     doc.addPage();
@@ -621,7 +626,7 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
     doc.setFontSize(12);
     const detailLines = [
       `Baseline: $${fmt(baseline)}    Weeks: ${weeks}    Days: ${days}    Factor: ${factor.toFixed(2)}`,
-      `Actual: $${fmt(actual)}    Lost Wages: $${fmt(lost)}`
+      `Actual: $${fmt(actual)}    (Baseline × Factor): $${fmt(baseline*factor)}    Lost Wages: $${fmt(lost)}`
     ];
     detailLines.forEach(line=>{
       const wrapped=doc.splitTextToSize(line, contentW);
@@ -631,9 +636,8 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
     for(const dataUrl of (w.images||[])){
       try{
         const img = await loadImage(dataUrl);
-        const maxW = contentW;
-        const ratio = maxW / img.width;
-        const wpt = maxW, hpt = img.height * ratio;
+        const ratio = contentW / img.width;
+        const wpt = contentW, hpt = img.height * ratio;
         if(y + hpt > pageH - margin){ doc.addPage(); y = await pageHeader('Post-Accident Statement', [
           `Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,
           `Statement: ${w.start||'—'} to ${w.end||'—'}`
@@ -644,32 +648,82 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
     }
   }
 
-  // SUMMARY PAGE
+  // ===== SUMMARY PAGE (looks like LW form, shows the math, two-column layout) =====
   doc.addPage();
-  let y = await (async()=>await pageHeader('Summary', [
+  let y = await pageHeader('Summary', [
     `Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,
     `Date of Loss: ${form.dateOfLoss||''}`,
     `Report Date: ${form.reportDate||todayStr()}`
-  ]))();
+  ]);
 
-  const preCount  = (form.preWeeks||[]).filter(w=> num(w.trips)||num(w.tips)).length;
-  const postCount = (form.postWeeks||[]).length;
-  const preTotal  = (form.preWeeks||[]).reduce((s,w)=> s + num(w.trips)+num(w.tips), 0);
-  const postActualTotal = (form.postWeeks||[]).reduce((s,w)=> s + num(w.actual), 0);
+  // Column settings
+  const colGap = 20;
+  const colW = (contentW - colGap)/2;
+  const leftX = margin;
+  const rightX = margin + colW + colGap;
+  const topY = y;
 
-  const summaryLines = [
-    `Pre-Accident Statements Count: ${preCount}`,
-    `Post-Accident Statements Count: ${postCount}`,
-    `Baseline Weekly Average: $${fmt(baseline)}`,
-    `Total Pre-Accident Gross (Trips + Tips): $${fmt(preTotal)}`,
-    `Total Actual (Post-Accident): $${fmt(postActualTotal)}`,
-    `Total Lost Wages: $${fmt(totalLost)}`
-  ];
+  // Render Pre table in left column
   doc.setFontSize(12);
-  summaryLines.forEach(line=>{
-    const wrapped=doc.splitTextToSize(line, contentW);
-    doc.text(wrapped, margin, y); y+=16*wrapped.length;
+  doc.text('Pre-Accident (Baseline Math)', leftX, y); y += 14;
+  doc.setFontSize(9);
+  let ly = y;
+  const preHeader = ['#','Dates','Factor','Trips','Tips','Weekly Eq.'];
+  const preRows = (form.preWeeks||[]).map((w,i)=>{
+    const weeks=parseInt(w.weeks||1,10)||0, days=parseInt(w.days||0,10)||0, factor=(weeks + days/7);
+    const trips=num(w.trips), tips=num(w.tips), eq=factor>0 ? (trips+tips)/factor : 0;
+    return [String(i+1), `${w.start||'—'}–${w.end||'—'}`, factor.toFixed(2), fmt(trips), fmt(tips), fmt(eq)];
   });
+
+  function colTable(x,y0,header,rows,maxWidth){
+    const colWidths = [18, 86, 40, 46, 46, 56]; // tuned to fit in colW
+    const totalW = colWidths.reduce((a,b)=>a+b,0);
+    const scale = Math.min(1, maxWidth/totalW);
+    const widths = colWidths.map(w=>w*scale);
+    let y=y0;
+    doc.setFontSize(9); doc.setFont(undefined,'bold');
+    let xpos=x; header.forEach((h,i)=>{ doc.text(h, xpos, y); xpos+=widths[i]; });
+    doc.setFont(undefined,'normal'); y+=12;
+    rows.forEach(r=>{
+      let x2=x;
+      r.forEach((cell,i)=>{
+        const text = doc.splitTextToSize(cell, widths[i]);
+        doc.text(text, x2, y);
+        x2+=widths[i];
+      });
+      y+=12;
+    });
+    return y;
+  }
+  ly = colTable(leftX, ly, preHeader, preRows, colW);
+  ly += 6;
+  const sumEq = preRows.reduce((s,r)=> s + parseFloat(r[5]||'0'), 0);
+  const cntEq = preRows.length;
+  const baseLine = `Baseline = (sum of weekly equivalents ÷ count) = ${fmt(sumEq)} ÷ ${cntEq||1} = $${fmt(cntEq? sumEq/cntEq : 0)}`;
+  doc.setFontSize(9); doc.text(baseLine, leftX, ly); 
+
+  // Render Post table in right column
+  let ry = y - 14; // align top titles
+  doc.setFontSize(12);
+  doc.text('Post-Accident (Lost Wages Math)', rightX, ry); ry += 14;
+  doc.setFontSize(9);
+  const postHeader = ['#','Dates','Factor','Actual','Base×F','Lost'];
+  const postRows = (form.postWeeks||[]).map((w,i)=>{
+    const weeks=parseInt(w.weeks||1,10)||0, days=parseInt(w.days||0,10)||0, factor=(weeks + days/7);
+    const actual=num(w.actual);
+    const baseF = baseline*factor;
+    let lost=baseF-actual; if(lost<0) lost=0;
+    return [String(i+1), `${w.start||'—'}–${w.end||'—'}`, factor.toFixed(2), fmt(actual), fmt(baseF), fmt(lost)];
+  });
+  ry = colTable(rightX, ry, postHeader, postRows, colW);
+  ry += 6;
+  const totalActual = postRows.reduce((s,r)=> s + parseFloat(r[3]||'0'), 0);
+  const totalLost  = postRows.reduce((s,r)=> s + parseFloat(r[5]||'0'), 0);
+  const totalsLine = `Totals → Actual: $${fmt(totalActual)}    Lost: $${fmt(totalLost)}`;
+  doc.setFontSize(9); doc.text(totalsLine, rightX, ry);
+
+  // If either column overflowed (rare on a big case), continue on an extra summary page
+  // (doc.addPage() logic would go here if needed; current layout fits typical 10–20 rows)
 
   const fname=(form.clientFirstName||'Client')+'_'+(form.clientLastName||'');
   doc.save(`${fname}_LostWages.pdf`);
