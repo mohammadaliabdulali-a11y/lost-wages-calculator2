@@ -5,70 +5,41 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Lost Wages Calculator – Blaszkow Legal</title>
 
-<!-- Libraries -->
+<!-- Library -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 :root{
-  --brand:#b31b1b;
-  --bg:#f7f7f8;
-  --card:#ffffff;
-  --text:#222;
-  --muted:#666;
+  --brand:#b31b1b; --bg:#f7f7f8; --card:#ffffff; --text:#222; --muted:#666;
 }
 *{box-sizing:border-box}
-body{
-  font-family: Arial, sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  margin:0;
-  padding:0 1rem 3rem;
-}
-.container{max-width:1100px;margin:0 auto;}
-header, footer{text-align:center;margin:1.5rem 0;}
+body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:0 1rem 3rem}
+.container{max-width:1100px;margin:0 auto}
+header,footer{text-align:center;margin:1.5rem 0}
 header img{max-height:120px}
-h1{margin:.5rem 0 0}
-h2{margin:0 0 .75rem}
-.card{
-  background:var(--card);
-  border-radius:12px;
-  padding:1rem;
-  box-shadow:0 4px 10px rgba(0,0,0,.06);
-  margin:1rem 0;
-}
+h1{margin:.5rem 0 0} h2{margin:0 0 .75rem}
+.card{background:var(--card);border-radius:12px;padding:1rem;box-shadow:0 4px 10px rgba(0,0,0,.06);margin:1rem 0}
 .controls{display:flex;gap:.5rem;flex-wrap:wrap}
-button{
-  background:var(--brand);
-  color:#fff;border:none;border-radius:8px;
-  padding:.6rem .9rem;cursor:pointer;font-weight:600;
-}
-button.secondary{background:#0f62fe}
-button.ghost{background:#eee;color:#222}
-button.danger{background:#c43b3b}
+button{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:.6rem .9rem;cursor:pointer;font-weight:600}
+button.secondary{background:#0f62fe} button.ghost{background:#eee;color:#222} button.danger{background:#c43b3b}
 button:disabled{opacity:.6;cursor:not-allowed}
 table{width:100%;border-collapse:collapse;margin-top:.5rem}
 th,td{border-bottom:1px solid #eee;padding:.5rem;text-align:right}
 th:first-child,td:first-child{text-align:left}
-input[type="number"],input[type="text"],input[type="password"],input[type="date"],input[type="email"]{
-  width:100%;padding:.45rem .5rem;border:1px solid #ddd;border-radius:6px;text-align:right
-}
+input[type="number"],input[type="text"],input[type="password"],input[type="date"],input[type="email"]{width:100%;padding:.45rem .5rem;border:1px solid #ddd;border-radius:6px;text-align:right}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
-.muted{color:var(--muted)}
-.row-actions{white-space:nowrap}
+.muted{color:var(--muted)} .row-actions{white-space:nowrap} .help{font-size:.9rem;color:#666}
+.table-wrap{overflow:auto}
 .badge{display:inline-block;padding:.15rem .5rem;border-radius:999px;background:#eee;color:#333;font-size:.8rem;margin-left:.4rem}
-.thumb{height:36px;width:auto;border-radius:6px;border:1px solid #ddd;margin-right:.3rem}
+.thumb{height:36px;width:auto;border-radius:6px;border:1px solid #ddd}
 .thumb-wrap{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
-.note{font-size:.92rem;color:#555}
 .hidden{display:none}
 hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
-.table-wrap{overflow:auto}
-.help{font-size:.9rem;color:#666}
 </style>
 </head>
 <body>
 <div class="container">
 
-  <!-- Header -->
   <header>
     <img src="new%20BLEGAL%20logo.jpg" alt="Blaszkow Legal Logo"/>
     <h1>Lost Wages Calculator</h1>
@@ -76,7 +47,7 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
     <hr/>
   </header>
 
-  <!-- ===== AUTH: Login / Register / Recover ===== -->
+  <!-- ===== AUTH ===== -->
   <section id="loginSection" class="card">
     <h2>Login</h2>
     <div class="grid">
@@ -96,13 +67,13 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
     <div class="grid">
       <div><label>Username</label><input id="regUsername" type="text"/></div>
       <div><label>Password</label><input id="regPassword" type="password"/></div>
-      <div><label>Email (for recovery)</label><input id="regEmail" type="email"/></div>
+      <div><label>Email (for local recovery)</label><input id="regEmail" type="email"/></div>
     </div>
     <div class="controls" style="margin-top:.5rem">
       <button id="registerBtn" class="secondary">Register</button>
       <button id="backToLogin1" class="ghost">Back to Login</button>
     </div>
-    <p class="help">New accounts are <b>Employees</b> by default. Master can promote to Admin.</p>
+    <p class="help">New accounts are <b>Employees</b> by default. Master can promote/demote users.</p>
   </section>
 
   <section id="recoverSection" class="card hidden">
@@ -116,10 +87,10 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
       <button id="resetPasswordBtn" class="secondary">Reset Password</button>
       <button id="backToLogin2" class="danger">Back to Login</button>
     </div>
-    <p class="help">Recovery happens locally (no emails sent).</p>
+    <p class="help">Recovery is local only (no emails sent).</p>
   </section>
 
-  <!-- ===== Dashboard ===== -->
+  <!-- ===== DASHBOARD ===== -->
   <section id="dashboardSection" class="card hidden">
     <h2>Dashboard <span id="whoami" class="badge"></span></h2>
     <div class="controls">
@@ -147,7 +118,7 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
     </div>
   </section>
 
-  <!-- ===== Form ===== -->
+  <!-- ===== FORM ===== -->
   <section id="formSection" class="card hidden">
     <h2>Lost Wages Form</h2>
     <div class="grid">
@@ -157,27 +128,38 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
       <div><label>Report Date</label><input id="reportDate" type="text" disabled/></div>
     </div>
 
-    <!-- Pre-Accident: Baseline -->
+    <!-- Pre-Accident: now matches post features -->
     <section class="card">
       <h3>Pre-Accident Weekly Earnings (Baseline)</h3>
-      <p class="note">Enter 6–8 pre-injury weeks. Weekly Net = Trips + Tips.</p>
-      <div class="controls"><button id="addPreWeekBtn">+ Add Week</button></div>
+      <p class="help">Weekly Equivalent = (Trips + Tips) ÷ (Weeks + Days/7). Baseline is the average of weekly equivalents.</p>
+      <div class="controls"><button id="addPreWeekBtn">+ Add Pre Week</button></div>
       <div class="table-wrap">
         <table id="preTable" aria-label="Pre-accident earnings">
           <thead>
-            <tr><th style="min-width:90px;">Week</th><th>Trips ($)</th><th>Tips ($)</th><th>Weekly Net ($)</th><th>Actions</th></tr>
+            <tr>
+              <th style="min-width:90px;">Week</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Weeks</th>
+              <th>Days (0–6)</th>
+              <th>Trips ($)</th>
+              <th>Tips ($)</th>
+              <th>Weekly Eq. ($)</th>
+              <th>Screenshots</th>
+              <th>Actions</th>
+            </tr>
           </thead>
           <tbody id="preBody"></tbody>
         </table>
       </div>
-      <p class="note">Baseline Average (Weekly): $<b id="baselineAvg">0.00</b></p>
+      <p class="help">Baseline Average (Weekly): $<b id="baselineAvg">0.00</b></p>
     </section>
 
-    <!-- Post-Accident: Reduced/Returned Weeks -->
+    <!-- Post-Accident -->
     <section class="card">
       <h3>Post-Accident / Returned Work</h3>
-      <p class="note">For each period, enter dates, any <i>Actual Earnings</i>, and optionally adjust <i>Weeks</i> + <i>Days</i> (default = 1 week). Lost Wages = Baseline × (Weeks + Days/7) − Actual (floored at 0).</p>
-      <div class="controls"><button id="addPostWeekBtn">+ Add Week</button></div>
+      <p class="help">Lost Wages = Baseline × (Weeks + Days/7) − Actual (min 0). Attach week-specific screenshots.</p>
+      <div class="controls"><button id="addPostWeekBtn">+ Add Post Week</button></div>
       <div class="table-wrap">
         <table id="postTable" aria-label="Post-accident earnings">
           <thead>
@@ -196,7 +178,7 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
           <tbody id="postBody"></tbody>
         </table>
       </div>
-      <p class="note">Total Lost Wages: $<b id="totalLost">0.00</b></p>
+      <p class="help">Total Lost Wages: $<b id="totalLost">0.00</b></p>
     </section>
 
     <div class="controls">
@@ -204,249 +186,216 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
       <button id="exportPdfBtn" class="secondary">Download PDF Report</button>
       <button id="backBtn" class="danger">Back to Dashboard</button>
     </div>
-    <p class="help">All data (including screenshots) is stored locally in your browser using <code>localStorage</code>.</p>
+    <p class="help">All data is stored locally in your browser using <code>localStorage</code>.</p>
   </section>
 
-  <footer>
-    <hr/>
-    <p>Blaszkow Legal, PLLC</p>
-  </footer>
+  <footer><hr/><p>Blaszkow Legal, PLLC</p></footer>
 </div>
 
 <script>
-/* ======================== Utilities ======================== */
+/* =========== Utils & Storage =========== */
 const $ = (s,root=document)=>root.querySelector(s);
 const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
-const fmt = n => (isFinite(n)? Number(n):0).toFixed(2);
 const num = v => { const n=parseFloat(v); return isFinite(n)? n:0; };
+const fmt = n => (isFinite(n)? Number(n):0).toFixed(2);
 const todayStr = () => new Date().toLocaleDateString();
 
-/* ======================== Storage Keys ======================== */
-const USERS_KEY = 'lwUsers';
-const FORMS_KEY = 'lwForms';
+const USERS_KEY='lwUsers', FORMS_KEY='lwForms';
 
-/* ======================== Users / Auth ======================== */
-let users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+let users = JSON.parse(localStorage.getItem(USERS_KEY)||'[]');
 if(users.length===0){
-  users = [{username:'admin',password:'admin',role:'master',email:''}];
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  users=[{username:'admin',password:'admin',role:'master',email:''}];
+  localStorage.setItem(USERS_KEY,JSON.stringify(users));
 }
-let currentUser = null;
-let currentFormId = null;
+let currentUser=null, currentFormId=null;
 
-/* Sections */
+/* =========== Sections =========== */
 const loginSection = $('#loginSection');
 const registerSection = $('#registerSection');
 const recoverSection = $('#recoverSection');
 const dashboardSection = $('#dashboardSection');
 const formSection = $('#formSection');
+function show(sec){[loginSection,registerSection,recoverSection,dashboardSection,formSection].forEach(x=>x.classList.add('hidden')); sec.classList.remove('hidden');}
+show(loginSection);
 
-function show(sec){
-  [loginSection,registerSection,recoverSection,dashboardSection,formSection].forEach(s=>s.classList.add('hidden'));
-  sec.classList.remove('hidden');
-}
-
-/* -------- Login -------- */
+/* =========== Auth =========== */
 $('#loginBtn').addEventListener('click', ()=>{
-  const u=$('#loginUsername').value.trim();
-  const p=$('#loginPassword').value;
-  const user = users.find(x=>x.username===u && x.password===p);
-  if(!user){ alert('Invalid username or password'); return; }
-  currentUser = user;
-  $('#whoami').textContent = `${user.username} (${user.role})`;
-  loadFormsTable();
-  loadUsersTable();
+  const u=$('#loginUsername').value.trim(), p=$('#loginPassword').value;
+  const user=users.find(x=>x.username===u && x.password===p);
+  if(!user){ alert('Invalid credentials'); return; }
+  currentUser=user;
+  $('#whoami').textContent=`${user.username} (${user.role})`;
+  loadFormsTable(); loadUsersTable();
   $('#userAdmin').classList.toggle('hidden', currentUser.role!=='master');
   show(dashboardSection);
 });
 $('#logoutBtn').addEventListener('click', ()=>{ currentUser=null; show(loginSection); });
 
-/* -------- Register -------- */
 $('#showRegisterBtn').addEventListener('click', ()=> show(registerSection));
 $('#backToLogin1').addEventListener('click', ()=> show(loginSection));
 $('#registerBtn').addEventListener('click', ()=>{
-  const username=$('#regUsername').value.trim();
-  const password=$('#regPassword').value;
-  const email=$('#regEmail').value.trim();
-  if(!username || !password){ alert('Username and password required'); return; }
-  if(users.some(u=>u.username===username)){ alert('Username already exists'); return; }
+  const username=$('#regUsername').value.trim(), password=$('#regPassword').value, email=$('#regEmail').value.trim();
+  if(!username||!password){ alert('Username & password required'); return; }
+  if(users.some(u=>u.username===username)){ alert('Username exists'); return; }
   users.push({username,password,email,role:'employee'});
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  alert('Account created! Login now.');
-  show(loginSection);
+  localStorage.setItem(USERS_KEY,JSON.stringify(users));
+  alert('Account created. Login now.'); show(loginSection);
 });
 
-/* -------- Recover -------- */
 $('#showRecoverBtn').addEventListener('click', ()=> show(recoverSection));
 $('#backToLogin2').addEventListener('click', ()=> show(loginSection));
-
 $('#recoverUsernameBtn').addEventListener('click', ()=>{
   const email=$('#recEmail').value.trim();
-  if(!email){ alert('Enter an email'); return; }
-  const matches = users.filter(u=> (u.email||'').toLowerCase()===email.toLowerCase());
-  if(matches.length===0){ alert('No username found for that email'); return; }
-  alert('Username(s): ' + matches.map(m=>m.username).join(', '));
+  if(!email){ alert('Enter email'); return; }
+  const names=users.filter(u=>(u.email||'').toLowerCase()===email.toLowerCase()).map(u=>u.username);
+  if(names.length===0) alert('No usernames found for that email'); else alert('Username(s): '+names.join(', '));
 });
-
 $('#resetPasswordBtn').addEventListener('click', ()=>{
-  const email=$('#recEmail').value.trim();
-  const uname=$('#recUsername').value.trim();
-  const user = users.find(u=>u.username===uname && (u.email||'').toLowerCase()===email.toLowerCase());
-  if(!user){ alert('No matching user for that username + email'); return; }
-  const newPass = prompt('Enter a new password:');
-  if(!newPass){ alert('Cancelled'); return; }
-  user.password = newPass;
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  alert('Password reset. You can log in now.');
-  show(loginSection);
+  const email=$('#recEmail').value.trim(), uname=$('#recUsername').value.trim();
+  const u=users.find(x=>x.username===uname && (x.email||'').toLowerCase()===email.toLowerCase());
+  if(!u){ alert('No match for username+email'); return; }
+  const np=prompt('Enter new password:'); if(!np) return;
+  u.password=np; localStorage.setItem(USERS_KEY,JSON.stringify(users)); alert('Password reset.');
 });
 
-/* ======================== Forms ======================== */
-function getForms(){ return JSON.parse(localStorage.getItem(FORMS_KEY) || '[]'); }
-function setForms(arr){ localStorage.setItem(FORMS_KEY, JSON.stringify(arr)); }
+/* =========== Dashboard / Users =========== */
+function getForms(){return JSON.parse(localStorage.getItem(FORMS_KEY)||'[]');}
+function setForms(arr){localStorage.setItem(FORMS_KEY,JSON.stringify(arr));}
 
-const formsTbody = $('#formsTable tbody');
-
+const formsTbody=$('#formsTable tbody');
 function loadFormsTable(){
-  const forms = getForms();
-  formsTbody.innerHTML='';
+  const forms=getForms(); formsTbody.innerHTML='';
   forms.forEach((f,i)=>{
-    // Access: employee sees only their forms; admin/master see all
     if(currentUser.role==='employee' && f.owner!==currentUser.username) return;
     const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${(f.clientFirstName||'')+' '+(f.clientLastName||'')}</td>
-      <td>${f.dateOfLoss||''}</td>
-      <td>${f.reportDate||''}</td>
-      <td>${f.owner}</td>
+    tr.innerHTML=`<td>${(f.clientFirstName||'')+' '+(f.clientLastName||'')}</td>
+      <td>${f.dateOfLoss||''}</td><td>${f.reportDate||''}</td><td>${f.owner}</td>
       <td class="row-actions">
-        <button data-id="${i}" class="ghost editForm">Edit</button>
-        <button data-id="${i}" class="danger delForm">Delete</button>
+        <button class="ghost editForm" data-id="${i}">Edit</button>
+        <button class="danger delForm" data-id="${i}">Delete</button>
       </td>`;
     formsTbody.appendChild(tr);
   });
 }
-
-/* Users Admin (Master only) */
-const usersTbody = $('#usersTable tbody');
+const usersTbody=$('#usersTable tbody');
 function loadUsersTable(){
   usersTbody.innerHTML='';
-  users.forEach((u,idx)=>{
+  users.forEach((u,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${u.username}${u.username==='admin' ? ' <span class="badge">master</span>':''}</td>
-      <td>${u.role}</td>
-      <td>${u.email||''}</td>
+    tr.innerHTML=`<td>${u.username}${u.username==='admin'?' <span class="badge">master</span>':''}</td>
+      <td>${u.role}</td><td>${u.email||''}</td>
       <td class="row-actions">
-        <button data-idx="${idx}" class="ghost resetPw">Reset PW</button>
-        <button data-idx="${idx}" class="ghost promote">Promote/Demote</button>
-        <button data-idx="${idx}" class="danger delUser">Delete</button>
+        <button class="ghost resetPw" data-idx="${i}">Reset PW</button>
+        <button class="ghost roleToggle" data-idx="${i}">Promote/Demote</button>
+        <button class="danger delUser" data-idx="${i}">Delete</button>
       </td>`;
     usersTbody.appendChild(tr);
   });
 }
-$('#usersTable').addEventListener('click', (e)=>{
-  const idx = e.target.dataset.idx;
-  if(idx===undefined) return;
-  const u = users[idx];
+$('#usersTable').addEventListener('click', e=>{
+  const i=e.target.dataset.idx; if(i===undefined) return; const u=users[i];
   if(e.target.classList.contains('resetPw')){
-    const np = prompt(`New password for ${u.username}:`);
-    if(np){ u.password=np; localStorage.setItem(USERS_KEY, JSON.stringify(users)); alert('Password reset.'); }
+    const np=prompt(`New password for ${u.username}:`); if(np){u.password=np;localStorage.setItem(USERS_KEY,JSON.stringify(users));}
   }
-  if(e.target.classList.contains('promote')){
-    if(u.username==='admin'){ alert('Master role cannot be changed.'); return; }
+  if(e.target.classList.contains('roleToggle')){
+    if(u.username==='admin'){ alert('Master cannot be changed'); return; }
     u.role = (u.role==='employee'?'admin':'employee');
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    loadUsersTable();
+    localStorage.setItem(USERS_KEY,JSON.stringify(users)); loadUsersTable();
   }
   if(e.target.classList.contains('delUser')){
     if(u.username==='admin'){ alert('Cannot delete master'); return; }
-    if(confirm(`Delete user ${u.username}? This does not delete their forms.`)){
-      users.splice(idx,1);
-      localStorage.setItem(USERS_KEY, JSON.stringify(users));
-      loadUsersTable();
-    }
+    if(confirm(`Delete user ${u.username}?`)){ users.splice(i,1); localStorage.setItem(USERS_KEY,JSON.stringify(users)); loadUsersTable(); }
   }
 });
 
-/* New Form */
-$('#newFormBtn').addEventListener('click', ()=>{
-  currentFormId = null;
-  clearForm();
-  $('#reportDate').value = todayStr();
-  show(formSection);
-});
-
-/* Back to Dashboard */
+/* New form / Back */
+$('#newFormBtn').addEventListener('click', ()=>{ currentFormId=null; clearForm(); $('#reportDate').value=todayStr(); show(formSection); });
 $('#backBtn').addEventListener('click', ()=>{ show(dashboardSection); loadFormsTable(); });
 
-/* ===== Form UI / Calculations ===== */
-const preBody = $('#preBody');
-const baselineAvgEl = $('#baselineAvg');
+/* =========== Form: Pre/Post Rows =========== */
+const preBody=$('#preBody'), baselineAvgEl=$('#baselineAvg');
+const postBody=$('#postBody'), totalLostEl=$('#totalLost');
 
-const postBody = $('#postBody');
-const totalLostEl = $('#totalLost');
-
-function clearForm(){
-  $('#clientFirstName').value='';
-  $('#clientLastName').value='';
-  $('#clientDateLoss').value='';
-  $('#reportDate').value = todayStr();
-  preBody.innerHTML='';
-  postBody.innerHTML='';
-  for(let i=0;i<6;i++) addPreRow();
-  addPostRow();
-  recalcPre();
-  recalcPost();
+function fileToDataURL(file){
+  return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
 }
 
-/* ---- Pre rows ---- */
+/* ---- Pre rows (now with start/end, weeks+days, screenshots) ---- */
 function addPreRow(data={}){
-  const idx = preBody.children.length + 1;
-  const tr=document.createElement('tr');
+  const idx=preBody.children.length+1;
+  const tr=document.createElement('tr'); tr._images = data.images ? [...data.images] : [];
   tr.innerHTML=`
     <td>Week ${idx}</td>
-    <td><input type="number" step="0.01" class="preTrips" value="${data.trips??''}"/></td>
-    <td><input type="number" step="0.01" class="preTips" value="${data.tips??''}"/></td>
-    <td>$<span class="preNet">0.00</span></td>
+    <td><input type="date" class="preStart" value="${data.start??''}"/></td>
+    <td><input type="date" class="preEnd"   value="${data.end??''}"/></td>
+    <td><input type="number" class="preWeeks" min="0" step="1" value="${data.weeks ?? 1}"/></td>
+    <td><input type="number" class="preDays"  min="0" max="6" step="1" value="${data.days  ?? 0}"/></td>
+    <td><input type="number" class="preTrips" step="0.01" value="${data.trips??''}"/></td>
+    <td><input type="number" class="preTips"  step="0.01" value="${data.tips ??''}"/></td>
+    <td>$<span class="preEq">0.00</span></td>
+    <td>
+      <div class="thumb-wrap"></div>
+      <input type="file" class="preFiles" accept="image/png, image/jpeg" multiple/>
+    </td>
     <td class="row-actions"><button class="danger rmPre">🗑</button></td>`;
   preBody.appendChild(tr);
-  tr.querySelectorAll('.preTrips,.preTips').forEach(inp=>inp.addEventListener('input', recalcPre));
-  tr.querySelector('.rmPre').addEventListener('click', ()=>{
-    tr.remove();
-    [...preBody.children].forEach((r,i)=> r.children[0].textContent = 'Week '+(i+1));
-    recalcPre();
-  });
-}
 
+  // events
+  tr.querySelectorAll('.preWeeks,.preDays,.preTrips,.preTips').forEach(inp=>inp.addEventListener('input', recalcPre));
+  tr.querySelector('.rmPre').addEventListener('click', ()=>{ tr.remove(); [...preBody.children].forEach((r,i)=>r.children[0].textContent='Week '+(i+1)); recalcPre(); });
+
+  // files
+  tr.querySelector('.preFiles').addEventListener('change', async (e)=>{
+    const files=Array.from(e.target.files||[]);
+    for(const f of files){ if(!/^image\/(png|jpeg)$/.test(f.type)) continue; tr._images.push(await fileToDataURL(f)); }
+    e.target.value=''; renderThumbs(tr,'.thumb-wrap','pre');
+  });
+
+  renderThumbs(tr,'.thumb-wrap','pre'); // existing
+  recalcPre();
+}
 $('#addPreWeekBtn').addEventListener('click', ()=> addPreRow());
 
-function recalcPre(){
-  const nets = [];
-  $$('#preBody tr').forEach(tr=>{
-    const trips = num(tr.querySelector('.preTrips').value);
-    const tips  = num(tr.querySelector('.preTips').value);
-    const net = trips + tips;
-    tr.querySelector('.preNet').textContent = fmt(net);
-    // count if any entry
-    if(trips!==0 || tips!==0) nets.push(net);
+function renderThumbs(tr, sel, type){
+  const wrap=tr.querySelector(sel); wrap.innerHTML='';
+  (tr._images||[]).forEach((dataUrl,idx)=>{
+    const img=document.createElement('img'); img.src=dataUrl; img.className='thumb';
+    const del=document.createElement('button'); del.className='ghost'; del.textContent='✕';
+    del.style.padding='.1rem .4rem'; del.style.borderRadius='6px';
+    del.addEventListener('click', ()=>{ tr._images.splice(idx,1); renderThumbs(tr,sel,type); });
+    const holder=document.createElement('div'); holder.style.display='flex'; holder.style.alignItems='center'; holder.style.gap='.25rem';
+    holder.appendChild(img); holder.appendChild(del); wrap.appendChild(holder);
   });
-  const baseline = nets.length ? (nets.reduce((a,b)=>a+b,0)/nets.length) : 0;
-  baselineAvgEl.textContent = fmt(baseline);
-  recalcPost(); // lost depends on baseline
 }
 
-/* ---- Post rows ---- */
+function recalcPre(){
+  let weeklyEquivs=[];
+  $$('#preBody tr').forEach(tr=>{
+    const weeks=Math.max(0,parseInt(tr.querySelector('.preWeeks').value||'1',10));
+    let days =Math.max(0,parseInt(tr.querySelector('.preDays').value ||'0',10)); if(days>6) days=6;
+    const factor = weeks + (days/7);
+    const trips=num(tr.querySelector('.preTrips').value);
+    const tips =num(tr.querySelector('.preTips').value);
+    const total = trips+tips;
+    const eq = factor>0 ? total/factor : 0;
+    tr.querySelector('.preEq').textContent = fmt(eq);
+    if(total!==0) weeklyEquivs.push(eq);
+  });
+  const baseline = weeklyEquivs.length? weeklyEquivs.reduce((a,b)=>a+b,0)/weeklyEquivs.length : 0;
+  baselineAvgEl.textContent = fmt(baseline);
+  recalcPost(); // depends on baseline
+}
+
+/* ---- Post rows (unchanged features) ---- */
 function addPostRow(data={}){
-  const idx = postBody.children.length + 1;
-  const tr=document.createElement('tr');
-  tr._images = data.images ? [...data.images] : []; // data URLs
+  const idx=postBody.children.length+1;
+  const tr=document.createElement('tr'); tr._images = data.images ? [...data.images] : [];
   tr.innerHTML=`
     <td>Week ${idx}</td>
     <td><input type="date" class="postStart" value="${data.start??''}"/></td>
-    <td><input type="date" class="postEnd" value="${data.end??''}"/></td>
+    <td><input type="date" class="postEnd"   value="${data.end  ??''}"/></td>
     <td><input type="number" class="postWeeks" min="0" step="1" value="${data.weeks ?? 1}"/></td>
-    <td><input type="number" class="postDays"  min="0" max="6" step="1" value="${data.days ?? 0}"/></td>
+    <td><input type="number" class="postDays"  min="0" max="6" step="1" value="${data.days  ?? 0}"/></td>
     <td><input type="number" class="postActual" step="0.01" value="${data.actual??''}"/></td>
     <td>$<span class="postLost">0.00</span></td>
     <td>
@@ -456,91 +405,56 @@ function addPostRow(data={}){
     <td class="row-actions"><button class="danger rmPost">🗑</button></td>`;
   postBody.appendChild(tr);
 
-  // Existing images -> render thumbs
-  renderThumbs(tr);
-
   tr.querySelectorAll('.postWeeks,.postDays,.postActual').forEach(inp=>inp.addEventListener('input', recalcPost));
-  tr.querySelector('.rmPost').addEventListener('click', ()=>{
-    tr.remove();
-    [...postBody.children].forEach((r,i)=> r.children[0].textContent = 'Week '+(i+1));
-    recalcPost();
-  });
+  tr.querySelector('.rmPost').addEventListener('click', ()=>{ tr.remove(); [...postBody.children].forEach((r,i)=>r.children[0].textContent='Week '+(i+1)); recalcPost(); });
 
-  // File input -> read all as dataURLs and store in tr._images
   tr.querySelector('.postFiles').addEventListener('change', async (e)=>{
-    const files = Array.from(e.target.files||[]);
-    for(const f of files){
-      if(!/^image\/(png|jpeg)$/.test(f.type)) continue;
-      const dataUrl = await fileToDataURL(f);
-      tr._images.push(dataUrl);
-    }
-    e.target.value=''; // reset
-    renderThumbs(tr);
+    const files=Array.from(e.target.files||[]);
+    for(const f of files){ if(!/^image\/(png|jpeg)$/.test(f.type)) continue; tr._images.push(await fileToDataURL(f)); }
+    e.target.value=''; renderThumbs(tr,'.thumb-wrap','post');
   });
 
+  renderThumbs(tr,'.thumb-wrap','post');
   recalcPost();
 }
-
 $('#addPostWeekBtn').addEventListener('click', ()=> addPostRow());
 
-function renderThumbs(tr){
-  const wrap = tr.querySelector('.thumb-wrap');
-  wrap.innerHTML='';
-  tr._images.forEach((dataUrl,idx)=>{
-    const img = document.createElement('img');
-    img.src = dataUrl; img.className='thumb';
-    const del = document.createElement('button');
-    del.textContent='✕'; del.className='ghost';
-    del.style.padding='.1rem .4rem'; del.style.borderRadius='6px';
-    del.addEventListener('click', ()=>{ tr._images.splice(idx,1); renderThumbs(tr); });
-    const holder = document.createElement('div');
-    holder.style.display='flex'; holder.style.alignItems='center'; holder.style.gap='.25rem';
-    holder.appendChild(img); holder.appendChild(del);
-    wrap.appendChild(holder);
-  });
-}
-
-function fileToDataURL(file){
-  return new Promise((resolve,reject)=>{
-    const r = new FileReader();
-    r.onload = ()=> resolve(r.result);
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
-}
-
 function recalcPost(){
-  const baseline = num($('#baselineAvg').textContent);
-  let total = 0;
+  const baseline=num($('#baselineAvg').textContent);
+  let total=0;
   $$('#postBody tr').forEach(tr=>{
-    const weeks = Math.max(0, parseInt(tr.querySelector('.postWeeks').value||'1',10));
-    let days  = Math.max(0, parseInt(tr.querySelector('.postDays').value||'0',10));
-    if(days>6) days=6;
-    const factor = weeks + (days/7);
-    const actual = num(tr.querySelector('.postActual').value);
-    let lost = baseline*factor - actual;
-    if(lost<0) lost=0;
+    const weeks=Math.max(0,parseInt(tr.querySelector('.postWeeks').value||'1',10));
+    let days =Math.max(0,parseInt(tr.querySelector('.postDays').value ||'0',10)); if(days>6) days=6;
+    const factor=weeks + (days/7);
+    const actual=num(tr.querySelector('.postActual').value);
+    let lost=baseline*factor - actual; if(lost<0) lost=0;
     tr.querySelector('.postLost').textContent = fmt(lost);
     total += lost;
   });
-  totalLostEl.textContent = fmt(total);
+  $('#totalLost').textContent = fmt(total);
 }
 
-/* ======================== Save / Load Form ======================== */
+/* =========== Save/Load Form =========== */
 $('#saveFormBtn').addEventListener('click', ()=>{ saveCurrentForm(); alert('Form saved'); });
 
 function collectForm(){
   const preWeeks = $$('#preBody tr').map(tr=>({
+    start: tr.querySelector('.preStart').value || '',
+    end:   tr.querySelector('.preEnd').value   || '',
+    weeks: parseInt(tr.querySelector('.preWeeks').value||'1',10),
+    days:  parseInt(tr.querySelector('.preDays').value ||'0',10),
     trips: tr.querySelector('.preTrips').value || '',
-    tips:  tr.querySelector('.preTips').value || ''
+    tips:  tr.querySelector('.preTips').value  || '',
+    eq:    tr.querySelector('.preEq').textContent || '0.00',
+    images: tr._images || []
   }));
   const postWeeks = $$('#postBody tr').map(tr=>({
     start: tr.querySelector('.postStart').value || '',
-    end:   tr.querySelector('.postEnd').value || '',
+    end:   tr.querySelector('.postEnd').value   || '',
     weeks: parseInt(tr.querySelector('.postWeeks').value||'1',10),
-    days:  parseInt(tr.querySelector('.postDays').value||'0',10),
+    days:  parseInt(tr.querySelector('.postDays').value ||'0',10),
     actual: tr.querySelector('.postActual').value || '',
-    lost: tr.querySelector('.postLost').textContent || '0.00',
+    lost:   tr.querySelector('.postLost').textContent || '0.00',
     images: tr._images || []
   }));
   return {
@@ -552,23 +466,19 @@ function collectForm(){
     preWeeks, postWeeks
   };
 }
-
 function saveCurrentForm(){
-  const forms = getForms();
-  const payload = collectForm();
-  if(currentFormId!=null){ forms[currentFormId]=payload; }
-  else { forms.push(payload); currentFormId = forms.length-1; }
+  const forms=getForms();
+  const payload=collectForm();
+  if(currentFormId!=null) forms[currentFormId]=payload; else { forms.push(payload); currentFormId=forms.length-1; }
   setForms(forms);
 }
-
 function loadForm(idx){
-  const f = getForms()[idx];
-  if(!f) return;
-  currentFormId = idx;
-  $('#clientFirstName').value = f.clientFirstName||'';
-  $('#clientLastName').value  = f.clientLastName||'';
-  $('#clientDateLoss').value  = f.dateOfLoss||'';
-  $('#reportDate').value      = f.reportDate||todayStr();
+  const f=getForms()[idx]; if(!f) return;
+  currentFormId=idx;
+  $('#clientFirstName').value=f.clientFirstName||'';
+  $('#clientLastName').value =f.clientLastName ||'';
+  $('#clientDateLoss').value =f.dateOfLoss     ||'';
+  $('#reportDate').value     =f.reportDate     ||todayStr();
 
   preBody.innerHTML=''; (f.preWeeks||[]).forEach(w=> addPreRow(w));
   if(preBody.children.length===0) for(let i=0;i<6;i++) addPreRow();
@@ -581,134 +491,131 @@ function loadForm(idx){
   show(formSection);
 }
 
-/* Edit/Delete from dashboard */
+/* Dashboard events */
 $('#formsTable').addEventListener('click', (e)=>{
   if(e.target.classList.contains('editForm')){
-    const id = parseInt(e.target.dataset.id,10);
-    const f = getForms()[id];
+    const id=parseInt(e.target.dataset.id,10), f=getForms()[id];
     if(!f) return;
-    // Access control
     if(currentUser.role==='employee' && f.owner!==currentUser.username){ alert('No access'); return; }
     loadForm(id);
   }
   if(e.target.classList.contains('delForm')){
-    const id = parseInt(e.target.dataset.id,10);
-    const forms=getForms();
-    const f=forms[id];
-    if(!f) return;
-    // Employees can delete only their forms; admin/master can delete any
+    const id=parseInt(e.target.dataset.id,10); const forms=getForms(); const f=forms[id]; if(!f) return;
     if(currentUser.role==='employee' && f.owner!==currentUser.username){ alert('No access'); return; }
-    if(confirm('Delete this form?')){
-      forms.splice(id,1);
-      setForms(forms);
-      loadFormsTable();
-    }
+    if(confirm('Delete this form?')){ forms.splice(id,1); setForms(forms); loadFormsTable(); }
   }
 });
 
-/* ======================== Export PDF ======================== */
-$('#exportPdfBtn').addEventListener('click', async ()=>{
-  saveCurrentForm();
-  const forms = getForms();
-  const form = forms[currentFormId];
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit:'pt', format:'letter' });
-  let y = 50;
-
-  // Header
-  doc.setFontSize(16);
-  doc.text('Lost Wages Report', 40, y); y+=18;
-  doc.setFontSize(11);
-  doc.text(`Client: ${form.clientFirstName||''} ${form.clientLastName||''}`, 40, y); y+=14;
-  doc.text(`Date of Loss: ${form.dateOfLoss||''}`, 40, y); y+=14;
-  const repDate = form.reportDate || todayStr();
-  doc.text(`Report Date: ${repDate}`, 40, y); y+=20;
-
-  // Baseline
-  const baseline = (form.preWeeks||[]).reduce((sum,w)=> sum + (num(w.trips)+num(w.tips)),0) / ((form.preWeeks||[]).filter(w=> num(w.trips)||num(w.tips)).length || 1);
-  doc.setFontSize(12);
-  doc.text(`Baseline Weekly Average: $${fmt(baseline)}`, 40, y); y+=18;
-
-  // Pre table (simple lines)
-  doc.setFontSize(11);
-  doc.text('Pre-Accident Weeks:', 40, y); y+=12;
-  (form.preWeeks||[]).forEach((w,i)=>{
-    const line = `${i+1}. Trips $${fmt(num(w.trips))}, Tips $${fmt(num(w.tips))}  → Net $${fmt(num(w.trips)+num(w.tips))}`;
-    doc.text(line, 50, y); y+=12;
-    if(y>740){ doc.addPage(); y=50; }
-  });
-  y+=6;
-
-  // Post table
-  // Also compute total lost again from stored rows, honoring factor = weeks + days/7
-  let totalLost = 0;
-  doc.text('Post-Accident Weeks:', 40, y); y+=12;
-  for(let i=0;i<(form.postWeeks||[]).length;i++){
-    const w = form.postWeeks[i];
-    const factor = (parseInt(w.weeks||1,10)||0) + ((parseInt(w.days||0,10)||0)/7);
-    let lost = baseline*factor - num(w.actual);
-    if(lost<0) lost=0;
-    totalLost += lost;
-
-    const headerLine = `${i+1}. ${w.start||'—'} to ${w.end||'—'}  | factor ${factor.toFixed(2)}  | Actual $${fmt(num(w.actual))}  → Lost $${fmt(lost)}`;
-    doc.text(headerLine, 50, y); y+=12;
-    if(y>720){ doc.addPage(); y=50; }
-
-    // Embed screenshots for this week
-    const images = w.images||[];
-    for(const dataUrl of images){
-      const img = await loadImage(dataUrl).catch(()=>null);
-      if(!img) continue;
-      const maxW = 520; // pt
-      const ratio = maxW / img.width;
-      const wpt = maxW;
-      const hpt = img.height * ratio;
-      if(y + hpt > 760){ doc.addPage(); y=50; }
-      doc.addImage(img, 'JPEG', 40, y, wpt, hpt);
-      y += hpt + 10;
-      if(y>760){ doc.addPage(); y=50; }
-    }
-  }
-
-  y+=6;
-  if(y>750){ doc.addPage(); y=50; }
-  doc.setFontSize(12);
-  doc.text(`Total Lost Wages: $${fmt(totalLost)}`, 40, y); y+=20;
-
-  // Footer disclaimer
-  if(y>740){ doc.addPage(); y=50; }
-  doc.setFontSize(10);
-  doc.text('⚖️ This report is an estimate only and is not legal advice.', 40, y);
-
-  doc.save(`${(form.clientFirstName||'Client')}_${(form.clientLastName||'')}_LostWages.pdf`);
-});
-
-function loadImage(src){
-  return new Promise((resolve,reject)=>{
-    const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=src;
-  });
+/* =========== New Form / Clear =========== */
+function clearForm(){
+  $('#clientFirstName').value=''; $('#clientLastName').value=''; $('#clientDateLoss').value='';
+  $('#reportDate').value=todayStr();
+  preBody.innerHTML=''; postBody.innerHTML='';
+  for(let i=0;i<6;i++) addPreRow();
+  addPostRow();
+  recalcPre(); recalcPost();
 }
 
-/* ======================== Wire up basic nav ======================== */
-$('#backToLogin1').addEventListener('click', ()=> show(loginSection));
-$('#backToLogin2').addEventListener('click', ()=> show(loginSection));
+/* =========== Export PDF (with Pre & Post screenshots) =========== */
+$('#exportPdfBtn').addEventListener('click', async ()=>{
+  saveCurrentForm();
+  const form=getForms()[currentFormId];
+  const { jsPDF } = window.jspdf;
+  const doc=new jsPDF({unit:'pt',format:'letter'});
+  let y=50;
 
-/* ======================== Table buttons ======================== */
+  // Header
+  doc.setFontSize(16); doc.text('Lost Wages Report',40,y); y+=18;
+  doc.setFontSize(11);
+  doc.text(`Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,40,y); y+=14;
+  doc.text(`Date of Loss: ${form.dateOfLoss||''}`,40,y); y+=14;
+  const baseline = computeBaseline(form.preWeeks||[]);
+  doc.text(`Baseline Weekly Average: $${fmt(baseline)}`,40,y); y+=18;
+
+  // Pre section
+  doc.setFontSize(12); doc.text('Pre-Accident Weeks:',40,y); y+=12;
+  for(let i=0;i<(form.preWeeks||[]).length;i++){
+    const w=form.preWeeks[i];
+    const factor=(parseInt(w.weeks||1,10)||0)+((parseInt(w.days||0,10)||0)/7);
+    const trips=num(w.trips), tips=num(w.tips), eq= factor>0 ? (trips+tips)/factor : 0;
+    const line=`${i+1}. ${w.start||'—'} to ${w.end||'—'} | factor ${factor.toFixed(2)} | Trips $${fmt(trips)}, Tips $${fmt(tips)} → Weekly Eq. $${fmt(eq)}`;
+    doc.setFontSize(11); doc.text(line,50,y); y+=12;
+    // images
+    for(const dataUrl of (w.images||[])){
+      const img=await loadImage(dataUrl).catch(()=>null); if(!img) continue;
+      const maxW=520, ratio=maxW/img.width, wpt=maxW, hpt=img.height*ratio;
+      if(y+hpt>760){ doc.addPage(); y=50; }
+      doc.addImage(img,'JPEG',40,y,wpt,hpt); y+=hpt+10;
+    }
+    if(y>760){ doc.addPage(); y=50; }
+  }
+  y+=6;
+
+  // Post section
+  doc.setFontSize(12); doc.text('Post-Accident Weeks:',40,y); y+=12;
+  let totalLost=0;
+  for(let i=0;i<(form.postWeeks||[]).length;i++){
+    const w=form.postWeeks[i];
+    const factor=(parseInt(w.weeks||1,10)||0)+((parseInt(w.days||0,10)||0)/7);
+    let lost=baseline*factor - num(w.actual); if(lost<0) lost=0;
+    totalLost+=lost;
+    const line=`${i+1}. ${w.start||'—'} to ${w.end||'—'} | factor ${factor.toFixed(2)} | Actual $${fmt(num(w.actual))} → Lost $${fmt(lost)}`;
+    doc.setFontSize(11); doc.text(line,50,y); y+=12;
+    for(const dataUrl of (w.images||[])){
+      const img=await loadImage(dataUrl).catch(()=>null); if(!img) continue;
+      const maxW=520, ratio=maxW/img.width, wpt=maxW, hpt=img.height*ratio;
+      if(y+hpt>760){ doc.addPage(); y=50; }
+      doc.addImage(img,'JPEG',40,y,wpt,hpt); y+=hpt+10;
+    }
+    if(y>760){ doc.addPage(); y=50; }
+  }
+  y+=8; if(y>740){ doc.addPage(); y=50; }
+  doc.setFontSize(12); doc.text(`Total Lost Wages: $${fmt(totalLost)}`,40,y); y+=18;
+  doc.setFontSize(10); doc.text('⚖️ This report is an estimate only and is not legal advice.',40,y);
+
+  const fname=(form.clientFirstName||'Client')+'_'+(form.clientLastName||'');
+  doc.save(`${fname}_LostWages.pdf`);
+});
+
+function loadImage(src){ return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=src; }); }
+function computeBaseline(preWeeks){
+  const eqs=(preWeeks||[]).map(w=>{
+    const weeks=parseInt(w.weeks||1,10)||0, days=parseInt(w.days||0,10)||0;
+    const factor=weeks + (days/7);
+    const trips=num(w.trips), tips=num(w.tips), total=trips+tips;
+    return (total!==0 && factor>0) ? total/factor : null;
+  }).filter(v=>v!==null);
+  if(eqs.length===0) return 0;
+  return eqs.reduce((a,b)=>a+b,0)/eqs.length;
+}
+
+/* =========== Wire-ups =========== */
 $('#addPreWeekBtn').addEventListener('click', ()=> addPreRow());
 $('#addPostWeekBtn').addEventListener('click', ()=> addPostRow());
-
-/* ======================== Save / Load form triggers ======================== */
 $('#saveFormBtn').addEventListener('click', saveCurrentForm);
+$('#newFormBtn').addEventListener('click', ()=>{ currentFormId=null; clearForm(); $('#reportDate').value=todayStr(); show(formSection); });
 
-/* ======================== Dashboard events ======================== */
-$('#backBtn').addEventListener('click', ()=>{ show(dashboardSection); loadFormsTable(); });
+/* Init default rows on first new form */
+function initFirst(){
+  // no-op until user creates a form
+}
+initFirst();
 
-/* ======================== Init ======================== */
-show(loginSection);
+/* Observe when form is shown to fill report date */
+const obs=new MutationObserver(()=>{ if(!formSection.classList.contains('hidden')) $('#reportDate').value=todayStr(); });
+obs.observe(formSection,{attributes:true,attributeFilter:['class']});
 
-/* Optional: auto-fill report date when form is visible */
-const observer=new MutationObserver(()=>{ if(!formSection.classList.contains('hidden')) $('#reportDate').value=todayStr(); });
-observer.observe(formSection,{attributes:true,attributeFilter:['class']});
+/* Dashboard table click */
+$('#formsTable').addEventListener('click', (e)=>{
+  if(e.target.classList.contains('editForm')){ const id=parseInt(e.target.dataset.id,10); const f=getForms()[id]; if(!f) return;
+    if(currentUser.role==='employee' && f.owner!==currentUser.username){ alert('No access'); return; }
+    loadForm(id);
+  }
+  if(e.target.classList.contains('delForm')){ const id=parseInt(e.target.dataset.id,10); const forms=getForms(); const f=forms[id]; if(!f) return;
+    if(currentUser.role==='employee' && f.owner!==currentUser.username){ alert('No access'); return; }
+    if(confirm('Delete this form?')){ forms.splice(id,1); setForms(forms); loadFormsTable(); }
+  }
+});
 </script>
 </body>
 </html>
