@@ -67,6 +67,7 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
       <button id="showRegisterBtn" class="ghost">Create Account</button>
       <button id="showRecoverBtn" class="secondary">Recover Account</button>
     </div>
+    <div id="loginError" style="margin-top:.5rem;color:#b00020;font-weight:600;"></div>
   </section>
 
   <section id="registerSection" class="card hidden">
@@ -189,7 +190,18 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
 </div>
 
 <script>
-/* =========== Utils & Storage =========== */
+document.addEventListener('DOMContentLoaded', () => {
+/* ====================== Safe storage helpers ====================== */
+function safeGet(key, fallback=null){
+  try { const v = localStorage.getItem(key); return v===null ? fallback : v; }
+  catch (e){ return fallback; }
+}
+function safeSet(key, value){
+  try { localStorage.setItem(key, value); return true; }
+  catch (e){ return false; }
+}
+
+/* ====================== Constants & minimal utils ====================== */
 const $ = (s,root=document)=>root.querySelector(s);
 const $$ = (s,root=document)=>Array.from(root.querySelectorAll(s));
 const num = v => { const n=parseFloat(v); return isFinite(n)? n:0; };
@@ -198,67 +210,106 @@ const todayStr = () => new Date().toLocaleDateString();
 
 const USERS_KEY='lwUsers', FORMS_KEY='lwForms';
 
-let users = JSON.parse(localStorage.getItem(USERS_KEY)||'[]');
-if(users.length===0){
-  users=[{username:'admin',password:'admin',role:'master',email:''}];
-  localStorage.setItem(USERS_KEY,JSON.stringify(users));
+/* ====================== Users model (with fallback) ====================== */
+let usersMemory = []; // used only if localStorage is unavailable
+function loadUsers(){
+  const raw = safeGet(USERS_KEY, null);
+  if(raw===null){
+    // localStorage blocked or empty — use memory copy
+    return usersMemory;
+  }
+  try { return JSON.parse(raw) || []; } catch { return []; }
 }
-let currentUser=null, currentFormId=null;
+function saveUsers(arr){
+  if(!safeSet(USERS_KEY, JSON.stringify(arr))){
+    usersMemory = arr.slice(); // fallback to memory
+  }
+}
+let users = loadUsers();
 
-/* =========== Sections =========== */
+/* Seed admin/admin only if NO users exist */
+if(!Array.isArray(users) || users.length===0){
+  users = [{username:'admin',password:'admin',role:'master',email:''}];
+  saveUsers(users);
+}
+
+/* ====================== Forms model ====================== */
+function getForms(){
+  try { return JSON.parse(safeGet(FORMS_KEY,'[]')) || []; } catch { return []; }
+}
+function setForms(arr){ safeSet(FORMS_KEY, JSON.stringify(arr)); }
+
+/* ====================== Section switching ====================== */
 const loginSection = $('#loginSection');
 const registerSection = $('#registerSection');
 const recoverSection = $('#recoverSection');
 const dashboardSection = $('#dashboardSection');
 const formSection = $('#formSection');
-function show(sec){[loginSection,registerSection,recoverSection,dashboardSection,formSection].forEach(x=>x.classList.add('hidden')); sec.classList.remove('hidden');}
+function show(sec){ [loginSection,registerSection,recoverSection,dashboardSection,formSection].forEach(x=>x.classList.add('hidden')); sec.classList.remove('hidden'); }
 show(loginSection);
 
-/* =========== Auth =========== */
+/* ====================== State ====================== */
+let currentUser=null, currentFormId=null;
+
+/* ====================== Login / Register / Recover ====================== */
+const loginError = $('#loginError');
+function setLoginError(msg){ loginError.textContent = msg || ''; }
+
 $('#loginBtn').addEventListener('click', ()=>{
-  const u=$('#loginUsername').value.trim(), p=$('#loginPassword').value;
-  const user=users.find(x=>x.username===u && x.password===p);
-  if(!user){ alert('Invalid credentials'); return; }
-  currentUser=user;
-  $('#whoami').textContent=`${user.username} (${user.role})`;
-  loadFormsTable(); loadUsersTable();
+  setLoginError('');
+  const u=$('#loginUsername').value.trim();
+  const p=$('#loginPassword').value;
+  if(!u || !p){ setLoginError('Enter both username and password.'); return; }
+  users = loadUsers();
+  const user = users.find(x=>x.username===u && x.password===p);
+  if(!user){ setLoginError('Invalid username or password.'); return; }
+  currentUser = user;
+  $('#whoami').textContent = `${user.username} (${user.role})`;
   $('#userAdmin').classList.toggle('hidden', currentUser.role!=='master');
+  loadFormsTable(); loadUsersTable();
   show(dashboardSection);
 });
+
 $('#logoutBtn').addEventListener('click', ()=>{ currentUser=null; show(loginSection); });
+
 $('#showRegisterBtn').addEventListener('click', ()=> show(registerSection));
 $('#backToLogin1').addEventListener('click', ()=> show(loginSection));
 $('#registerBtn').addEventListener('click', ()=>{
-  const username=$('#regUsername').value.trim(), password=$('#regPassword').value, email=$('#regEmail').value.trim();
-  if(!username||!password){ alert('Username & password required'); return; }
-  if(users.some(u=>u.username===username)){ alert('Username exists'); return; }
+  setLoginError('');
+  const username=$('#regUsername').value.trim();
+  const password=$('#regPassword').value;
+  const email=$('#regEmail').value.trim();
+  if(!username || !password){ alert('Username & password required'); return; }
+  users = loadUsers();
+  if(users.some(u=>u.username===username)){ alert('Username already exists'); return; }
   users.push({username,password,email,role:'employee'});
-  localStorage.setItem(USERS_KEY,JSON.stringify(users));
-  alert('Account created. Login now.'); show(loginSection);
+  saveUsers(users);
+  alert('Account created. You can log in now.'); show(loginSection);
 });
+
 $('#showRecoverBtn').addEventListener('click', ()=> show(recoverSection));
 $('#backToLogin2').addEventListener('click', ()=> show(loginSection));
 $('#recoverUsernameBtn').addEventListener('click', ()=>{
   const email=$('#recEmail').value.trim();
-  if(!email){ alert('Enter email'); return; }
-  const names=users.filter(u=>(u.email||'').toLowerCase()===email.toLowerCase()).map(u=>u.username);
-  if(names.length===0) alert('No usernames found for that email'); else alert('Username(s): '+names.join(', '));
+  if(!email){ alert('Enter an email'); return; }
+  users = loadUsers();
+  const matches = users.filter(u=> (u.email||'').toLowerCase()===email.toLowerCase()).map(u=>u.username);
+  alert(matches.length? 'Username(s): '+matches.join(', '): 'No usernames found for that email.');
 });
 $('#resetPasswordBtn').addEventListener('click', ()=>{
-  const email=$('#recEmail').value.trim(), uname=$('#recUsername').value.trim();
-  const u=users.find(x=>x.username===uname && (x.email||'').toLowerCase()===email.toLowerCase());
-  if(!u){ alert('No match for username+email'); return; }
-  const np=prompt('Enter new password:'); if(!np) return;
-  u.password=np; localStorage.setItem(USERS_KEY,JSON.stringify(users)); alert('Password reset.');
+  const email=$('#recEmail').value.trim();
+  const uname=$('#recUsername').value.trim();
+  users = loadUsers();
+  const user = users.find(u=>u.username===uname && (u.email||'').toLowerCase()===email.toLowerCase());
+  if(!user){ alert('No matching user for that username + email'); return; }
+  const np = prompt('Enter a new password:'); if(!np) return;
+  user.password = np; saveUsers(users);
+  alert('Password reset. You can log in now.');
 });
 
-/* =========== Dashboard / Users =========== */
-function getForms(){return JSON.parse(localStorage.getItem(FORMS_KEY)||'[]');}
-function setForms(arr){localStorage.setItem(FORMS_KEY,JSON.stringify(arr));}
-
-const formsTbody=$('#formsTable tbody');
+/* ====================== Dashboard / Users ====================== */
 function loadFormsTable(){
-  const forms=getForms(); formsTbody.innerHTML='';
+  const forms=getForms(); const tbody=$('#formsTable tbody'); tbody.innerHTML='';
   forms.forEach((f,i)=>{
     if(currentUser.role==='employee' && f.owner!==currentUser.username) return;
     const tr=document.createElement('tr');
@@ -268,12 +319,12 @@ function loadFormsTable(){
         <button class="ghost editForm" data-id="${i}">Edit</button>
         <button class="danger delForm" data-id="${i}">Delete</button>
       </td>`;
-    formsTbody.appendChild(tr);
+    tbody.appendChild(tr);
   });
 }
-const usersTbody=$('#usersTable tbody');
 function loadUsersTable(){
-  usersTbody.innerHTML='';
+  users = loadUsers();
+  const tbody=$('#usersTable tbody'); tbody.innerHTML='';
   users.forEach((u,i)=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`<td>${u.username}${u.username==='admin'?' <span class="badge">master</span>':''}</td>
@@ -283,33 +334,34 @@ function loadUsersTable(){
         <button class="ghost roleToggle" data-idx="${i}">Promote/Demote</button>
         <button class="danger delUser" data-idx="${i}">Delete</button>
       </td>`;
-    usersTbody.appendChild(tr);
+    tbody.appendChild(tr);
   });
 }
 $('#usersTable').addEventListener('click', e=>{
-  const i=e.target.dataset.idx; if(i===undefined) return; const u=users[i];
+  const i=e.target.dataset.idx; if(i===undefined) return;
+  users = loadUsers();
+  const u=users[i];
   if(e.target.classList.contains('resetPw')){
-    const np=prompt(`New password for ${u.username}:`); if(np){u.password=np;localStorage.setItem(USERS_KEY,JSON.stringify(users));}
+    const np=prompt(`New password for ${u.username}:`); if(np){ u.password=np; saveUsers(users); }
   }
   if(e.target.classList.contains('roleToggle')){
     if(u.username==='admin'){ alert('Master cannot be changed'); return; }
-    u.role = (u.role==='employee'?'admin':'employee');
-    localStorage.setItem(USERS_KEY,JSON.stringify(users)); loadUsersTable();
+    u.role=(u.role==='employee'?'admin':'employee'); saveUsers(users); loadUsersTable();
   }
   if(e.target.classList.contains('delUser')){
     if(u.username==='admin'){ alert('Cannot delete master'); return; }
-    if(confirm(`Delete user ${u.username}?`)){ users.splice(i,1); localStorage.setItem(USERS_KEY,JSON.stringify(users)); loadUsersTable(); }
+    if(confirm(`Delete user ${u.username}?`)){ users.splice(i,1); saveUsers(users); loadUsersTable(); }
   }
 });
 
 /* New form / Back */
-$('#newFormBtn').addEventListener('click', ()=>{ currentFormId=null; clearForm(); $('#reportDate').value=todayStr(); show(formSection); });
+$('#newFormBtn').addEventListener('click', ()=>{ currentUser=null?null:currentUser; currentFormId=null; clearForm(); $('#reportDate').value=todayStr(); show(formSection); });
 $('#backBtn').addEventListener('click', ()=>{ show(dashboardSection); loadFormsTable(); });
 
 /* =========== Form: Pre/Post Rows =========== */
 const preBody=$('#preBody'), baselineAvgEl=$('#baselineAvg');
 const baselineListEl=$('#baselineList');
-const postBody=$('#postBody'), totalLostEl=$('#totalLost');
+const postBody=$('#postBody');
 
 function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
 
@@ -368,7 +420,9 @@ function recalcPre(){
     const total=trips+tips;
     const eq=factor>0? total/factor : 0;
     tr.querySelector('.preEq').textContent = fmt(eq);
-    if(total!==0){ weeklyEquivs.push(eq); lines.push(`[${idx+1}] ${tr.querySelector('.preStart').value||'—'}–${tr.querySelector('.preEnd').value||'—'} | (${fmt(trips)}+${fmt(tips)})/${factor.toFixed(2)} = ${fmt(eq)}`); }
+    if(total!==0){ weeklyEquivs.push(eq); lines.push(
+      `[${idx+1}] ${tr.querySelector('.preStart').value||'—'}–${tr.querySelector('.preEnd').value||'—'} | (${fmt(trips)}+${fmt(tips)})/${factor.toFixed(2)} = ${fmt(eq)}`
+    ); }
   });
   const baseline=weeklyEquivs.length? weeklyEquivs.reduce((a,b)=>a+b,0)/weeklyEquivs.length : 0;
   baselineAvgEl.textContent = fmt(baseline);
@@ -468,8 +522,6 @@ function collectForm(){
     preWeeks, postWeeks
   };
 }
-function getForms(){return JSON.parse(localStorage.getItem(FORMS_KEY)||'[]');}
-function setForms(arr){localStorage.setItem(FORMS_KEY,JSON.stringify(arr));}
 function saveCurrentForm(){
   const forms=getForms(); const payload=collectForm();
   if(currentFormId!=null) forms[currentFormId]=payload; else { forms.push(payload); currentFormId=forms.length-1; }
@@ -522,7 +574,10 @@ function clearForm(){
 /* =========== Export PDF (statement pages + detailed summary) =========== */
 $('#exportPdfBtn').addEventListener('click', async ()=>{
   saveCurrentForm();
-  const form=getForms()[currentFormId];
+  const forms=getForms();
+  const form=forms[currentFormId];
+  if(!form){ alert('Save the form first.'); return; }
+
   const { jsPDF } = window.jspdf;
 
   const pageW = 612, pageH = 792, margin = 40, contentW = pageW - margin*2;
@@ -607,7 +662,7 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
   }
 
   // POST PAGES (one per post statement)
-  let totalLost = 0;
+  let finalTotalLost = 0;
   for(let i=0;i<(form.postWeeks||[]).length;i++){
     doc.addPage();
     const w=form.postWeeks[i];
@@ -621,7 +676,7 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
     const factor= weeks + (days/7);
     const actual= num(w.actual);
     let lost = baseline*factor - actual; if(lost<0) lost=0;
-    totalLost += lost;
+    finalTotalLost += lost;
 
     doc.setFontSize(12);
     const detailLines = [
@@ -648,7 +703,7 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
     }
   }
 
-  // ===== SUMMARY PAGE (looks like LW form, shows the math, two-column layout) =====
+  // ===== SUMMARY PAGE (mirrors form, shows math) =====
   doc.addPage();
   let y = await pageHeader('Summary', [
     `Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,
@@ -661,9 +716,8 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
   const colW = (contentW - colGap)/2;
   const leftX = margin;
   const rightX = margin + colW + colGap;
-  const topY = y;
 
-  // Render Pre table in left column
+  // Left: Pre table
   doc.setFontSize(12);
   doc.text('Pre-Accident (Baseline Math)', leftX, y); y += 14;
   doc.setFontSize(9);
@@ -676,7 +730,7 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
   });
 
   function colTable(x,y0,header,rows,maxWidth){
-    const colWidths = [18, 86, 40, 46, 46, 56]; // tuned to fit in colW
+    const colWidths = [18, 86, 40, 46, 46, 56];
     const totalW = colWidths.reduce((a,b)=>a+b,0);
     const scale = Math.min(1, maxWidth/totalW);
     const widths = colWidths.map(w=>w*scale);
@@ -699,11 +753,11 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
   ly += 6;
   const sumEq = preRows.reduce((s,r)=> s + parseFloat(r[5]||'0'), 0);
   const cntEq = preRows.length;
-  const baseLine = `Baseline = (sum of weekly equivalents ÷ count) = ${fmt(sumEq)} ÷ ${cntEq||1} = $${fmt(cntEq? sumEq/cntEq : 0)}`;
-  doc.setFontSize(9); doc.text(baseLine, leftX, ly); 
+  const baseLineText = `Baseline = (sum of weekly equivalents ÷ count) = ${fmt(sumEq)} ÷ ${cntEq||1} = $${fmt(cntEq? sumEq/cntEq : 0)}`;
+  doc.setFontSize(9); doc.text(baseLineText, leftX, ly); 
 
-  // Render Post table in right column
-  let ry = y - 14; // align top titles
+  // Right: Post table
+  let ry = y - 14;
   doc.setFontSize(12);
   doc.text('Post-Accident (Lost Wages Math)', rightX, ry); ry += 14;
   doc.setFontSize(9);
@@ -721,9 +775,6 @@ $('#exportPdfBtn').addEventListener('click', async ()=>{
   const totalLost  = postRows.reduce((s,r)=> s + parseFloat(r[5]||'0'), 0);
   const totalsLine = `Totals → Actual: $${fmt(totalActual)}    Lost: $${fmt(totalLost)}`;
   doc.setFontSize(9); doc.text(totalsLine, rightX, ry);
-
-  // If either column overflowed (rare on a big case), continue on an extra summary page
-  // (doc.addPage() logic would go here if needed; current layout fits typical 10–20 rows)
 
   const fname=(form.clientFirstName||'Client')+'_'+(form.clientLastName||'');
   doc.save(`${fname}_LostWages.pdf`);
@@ -744,6 +795,7 @@ function clearForm(){
   addPostRow();
   recalcPre(); recalcPost();
 }
+}); // DOMContentLoaded
 </script>
 </body>
 </html>
