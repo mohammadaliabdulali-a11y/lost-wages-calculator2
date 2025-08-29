@@ -23,15 +23,22 @@ h1{margin:.5rem 0 0} h2{margin:0 0 .75rem}
 button{background:var(--brand);color:#fff;border:none;border-radius:8px;padding:.6rem .9rem;cursor:pointer;font-weight:600}
 button.secondary{background:#0f62fe} button.ghost{background:#eee;color:#222} button.danger{background:#c43b3b}
 button:disabled{opacity:.6;cursor:not-allowed}
-table{width:100%;border-collapse:collapse;margin-top:.5rem}
-th,td{border-bottom:1px solid #eee;padding:.5rem;text-align:right}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;margin-top:.5rem;table-layout:auto}
+th,td{border-bottom:1px solid #eee;padding:.5rem;text-align:right;vertical-align:top}
 th:first-child,td:first-child{text-align:left}
-input[type="number"],input[type="text"],input[type="password"],input[type="date"],input[type="email"]{width:100%;padding:.45rem .5rem;border:1px solid #ddd;border-radius:6px;text-align:right}
+input[type="number"],input[type="text"],input[type="password"],input[type="date"],input[type="email"]{
+  width:100%;padding:.6rem .7rem;border:1px solid #ddd;border-radius:8px;text-align:right;
+  font-size:16px; background:#fff;
+}
+input.money{
+  min-width:160px; /* wider boxes for amounts */
+  font-variant-numeric: tabular-nums;
+}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
 .muted{color:var(--muted)} .row-actions{white-space:nowrap} .help{font-size:.9rem;color:#666}
-.table-wrap{overflow:auto}
 .badge{display:inline-block;padding:.15rem .5rem;border-radius:999px;background:#eee;color:#333;font-size:.8rem;margin-left:.4rem}
-.thumb{height:36px;width:auto;border-radius:6px;border:1px solid #ddd}
+.thumb{height:42px;width:auto;border-radius:6px;border:1px solid #ddd}
 .thumb-wrap{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
 .hidden{display:none}
 hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
@@ -40,6 +47,7 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
 <body>
 <div class="container">
 
+  <!-- Header -->
   <header>
     <img src="new%20BLEGAL%20logo.jpg" alt="Blaszkow Legal Logo"/>
     <h1>Lost Wages Calculator</h1>
@@ -59,7 +67,6 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
       <button id="showRegisterBtn" class="ghost">Create Account</button>
       <button id="showRecoverBtn" class="secondary">Recover Account</button>
     </div>
-    <p class="help">Master login is preloaded: <b>admin / admin</b></p>
   </section>
 
   <section id="registerSection" class="card hidden">
@@ -128,7 +135,7 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
       <div><label>Report Date</label><input id="reportDate" type="text" disabled/></div>
     </div>
 
-    <!-- Pre-Accident: now matches post features -->
+    <!-- Pre-Accident -->
     <section class="card">
       <h3>Pre-Accident Weekly Earnings (Baseline)</h3>
       <p class="help">Weekly Equivalent = (Trips + Tips) ÷ (Weeks + Days/7). Baseline is the average of weekly equivalents.</p>
@@ -137,16 +144,8 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
         <table id="preTable" aria-label="Pre-accident earnings">
           <thead>
             <tr>
-              <th style="min-width:90px;">Week</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Weeks</th>
-              <th>Days (0–6)</th>
-              <th>Trips ($)</th>
-              <th>Tips ($)</th>
-              <th>Weekly Eq. ($)</th>
-              <th>Screenshots</th>
-              <th>Actions</th>
+              <th>Week</th><th>Start</th><th>End</th><th>Weeks</th><th>Days (0–6)</th>
+              <th>Trips ($)</th><th>Tips ($)</th><th>Weekly Eq. ($)</th><th>Screenshots</th><th>Actions</th>
             </tr>
           </thead>
           <tbody id="preBody"></tbody>
@@ -164,15 +163,8 @@ hr.soft{border:0;border-top:1px solid #eee;margin:1rem 0}
         <table id="postTable" aria-label="Post-accident earnings">
           <thead>
             <tr>
-              <th style="min-width:90px;">Week</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Weeks</th>
-              <th>Days (0–6)</th>
-              <th>Actual ($)</th>
-              <th>Lost ($)</th>
-              <th>Screenshots</th>
-              <th>Actions</th>
+              <th>Week</th><th>Start</th><th>End</th><th>Weeks</th><th>Days (0–6)</th>
+              <th>Actual ($)</th><th>Lost ($)</th><th>Screenshots</th><th>Actions</th>
             </tr>
           </thead>
           <tbody id="postBody"></tbody>
@@ -230,7 +222,6 @@ $('#loginBtn').addEventListener('click', ()=>{
   show(dashboardSection);
 });
 $('#logoutBtn').addEventListener('click', ()=>{ currentUser=null; show(loginSection); });
-
 $('#showRegisterBtn').addEventListener('click', ()=> show(registerSection));
 $('#backToLogin1').addEventListener('click', ()=> show(loginSection));
 $('#registerBtn').addEventListener('click', ()=>{
@@ -241,7 +232,6 @@ $('#registerBtn').addEventListener('click', ()=>{
   localStorage.setItem(USERS_KEY,JSON.stringify(users));
   alert('Account created. Login now.'); show(loginSection);
 });
-
 $('#showRecoverBtn').addEventListener('click', ()=> show(recoverSection));
 $('#backToLogin2').addEventListener('click', ()=> show(loginSection));
 $('#recoverUsernameBtn').addEventListener('click', ()=>{
@@ -316,22 +306,32 @@ $('#backBtn').addEventListener('click', ()=>{ show(dashboardSection); loadFormsT
 const preBody=$('#preBody'), baselineAvgEl=$('#baselineAvg');
 const postBody=$('#postBody'), totalLostEl=$('#totalLost');
 
-function fileToDataURL(file){
-  return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file); });
+function fileToDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
+
+function renderThumbs(tr, sel){
+  const wrap=tr.querySelector(sel); wrap.innerHTML='';
+  (tr._images||[]).forEach((dataUrl,idx)=>{
+    const img=document.createElement('img'); img.src=dataUrl; img.className='thumb';
+    const del=document.createElement('button'); del.className='ghost'; del.textContent='✕';
+    del.style.padding='.1rem .4rem'; del.style.borderRadius='6px';
+    del.addEventListener('click', ()=>{ tr._images.splice(idx,1); renderThumbs(tr,sel); });
+    const holder=document.createElement('div'); holder.style.display='flex'; holder.style.alignItems='center'; holder.style.gap='.25rem';
+    holder.appendChild(img); holder.appendChild(del); wrap.appendChild(holder);
+  });
 }
 
-/* ---- Pre rows (now with start/end, weeks+days, screenshots) ---- */
+/* ---- Pre rows ---- */
 function addPreRow(data={}){
   const idx=preBody.children.length+1;
-  const tr=document.createElement('tr'); tr._images = data.images ? [...data.images] : [];
+  const tr=document.createElement('tr'); tr._images=data.images?[...data.images]:[];
   tr.innerHTML=`
     <td>Week ${idx}</td>
     <td><input type="date" class="preStart" value="${data.start??''}"/></td>
-    <td><input type="date" class="preEnd"   value="${data.end??''}"/></td>
+    <td><input type="date" class="preEnd"   value="${data.end  ??''}"/></td>
     <td><input type="number" class="preWeeks" min="0" step="1" value="${data.weeks ?? 1}"/></td>
     <td><input type="number" class="preDays"  min="0" max="6" step="1" value="${data.days  ?? 0}"/></td>
-    <td><input type="number" class="preTrips" step="0.01" value="${data.trips??''}"/></td>
-    <td><input type="number" class="preTips"  step="0.01" value="${data.tips ??''}"/></td>
+    <td><input type="number" class="preTrips money" step="0.01" value="${data.trips??''}"/></td>
+    <td><input type="number" class="preTips  money" step="0.01" value="${data.tips ??''}"/></td>
     <td>$<span class="preEq">0.00</span></td>
     <td>
       <div class="thumb-wrap"></div>
@@ -340,63 +340,47 @@ function addPreRow(data={}){
     <td class="row-actions"><button class="danger rmPre">🗑</button></td>`;
   preBody.appendChild(tr);
 
-  // events
   tr.querySelectorAll('.preWeeks,.preDays,.preTrips,.preTips').forEach(inp=>inp.addEventListener('input', recalcPre));
   tr.querySelector('.rmPre').addEventListener('click', ()=>{ tr.remove(); [...preBody.children].forEach((r,i)=>r.children[0].textContent='Week '+(i+1)); recalcPre(); });
-
-  // files
   tr.querySelector('.preFiles').addEventListener('change', async (e)=>{
     const files=Array.from(e.target.files||[]);
     for(const f of files){ if(!/^image\/(png|jpeg)$/.test(f.type)) continue; tr._images.push(await fileToDataURL(f)); }
-    e.target.value=''; renderThumbs(tr,'.thumb-wrap','pre');
+    e.target.value=''; renderThumbs(tr,'.thumb-wrap');
   });
-
-  renderThumbs(tr,'.thumb-wrap','pre'); // existing
+  renderThumbs(tr,'.thumb-wrap');
   recalcPre();
 }
 $('#addPreWeekBtn').addEventListener('click', ()=> addPreRow());
-
-function renderThumbs(tr, sel, type){
-  const wrap=tr.querySelector(sel); wrap.innerHTML='';
-  (tr._images||[]).forEach((dataUrl,idx)=>{
-    const img=document.createElement('img'); img.src=dataUrl; img.className='thumb';
-    const del=document.createElement('button'); del.className='ghost'; del.textContent='✕';
-    del.style.padding='.1rem .4rem'; del.style.borderRadius='6px';
-    del.addEventListener('click', ()=>{ tr._images.splice(idx,1); renderThumbs(tr,sel,type); });
-    const holder=document.createElement('div'); holder.style.display='flex'; holder.style.alignItems='center'; holder.style.gap='.25rem';
-    holder.appendChild(img); holder.appendChild(del); wrap.appendChild(holder);
-  });
-}
 
 function recalcPre(){
   let weeklyEquivs=[];
   $$('#preBody tr').forEach(tr=>{
     const weeks=Math.max(0,parseInt(tr.querySelector('.preWeeks').value||'1',10));
-    let days =Math.max(0,parseInt(tr.querySelector('.preDays').value ||'0',10)); if(days>6) days=6;
-    const factor = weeks + (days/7);
+    let days=Math.max(0,parseInt(tr.querySelector('.preDays').value||'0',10)); if(days>6) days=6;
+    const factor=weeks+(days/7);
     const trips=num(tr.querySelector('.preTrips').value);
-    const tips =num(tr.querySelector('.preTips').value);
-    const total = trips+tips;
-    const eq = factor>0 ? total/factor : 0;
+    const tips=num(tr.querySelector('.preTips').value);
+    const total=trips+tips;
+    const eq=factor>0? total/factor : 0;
     tr.querySelector('.preEq').textContent = fmt(eq);
     if(total!==0) weeklyEquivs.push(eq);
   });
-  const baseline = weeklyEquivs.length? weeklyEquivs.reduce((a,b)=>a+b,0)/weeklyEquivs.length : 0;
+  const baseline=weeklyEquivs.length? weeklyEquivs.reduce((a,b)=>a+b,0)/weeklyEquivs.length : 0;
   baselineAvgEl.textContent = fmt(baseline);
-  recalcPost(); // depends on baseline
+  recalcPost();
 }
 
-/* ---- Post rows (unchanged features) ---- */
+/* ---- Post rows ---- */
 function addPostRow(data={}){
   const idx=postBody.children.length+1;
-  const tr=document.createElement('tr'); tr._images = data.images ? [...data.images] : [];
+  const tr=document.createElement('tr'); tr._images=data.images?[...data.images]:[];
   tr.innerHTML=`
     <td>Week ${idx}</td>
     <td><input type="date" class="postStart" value="${data.start??''}"/></td>
     <td><input type="date" class="postEnd"   value="${data.end  ??''}"/></td>
     <td><input type="number" class="postWeeks" min="0" step="1" value="${data.weeks ?? 1}"/></td>
     <td><input type="number" class="postDays"  min="0" max="6" step="1" value="${data.days  ?? 0}"/></td>
-    <td><input type="number" class="postActual" step="0.01" value="${data.actual??''}"/></td>
+    <td><input type="number" class="postActual money" step="0.01" value="${data.actual??''}"/></td>
     <td>$<span class="postLost">0.00</span></td>
     <td>
       <div class="thumb-wrap"></div>
@@ -411,10 +395,10 @@ function addPostRow(data={}){
   tr.querySelector('.postFiles').addEventListener('change', async (e)=>{
     const files=Array.from(e.target.files||[]);
     for(const f of files){ if(!/^image\/(png|jpeg)$/.test(f.type)) continue; tr._images.push(await fileToDataURL(f)); }
-    e.target.value=''; renderThumbs(tr,'.thumb-wrap','post');
+    e.target.value=''; renderThumbs(tr,'.thumb-wrap');
   });
 
-  renderThumbs(tr,'.thumb-wrap','post');
+  renderThumbs(tr,'.thumb-wrap');
   recalcPost();
 }
 $('#addPostWeekBtn').addEventListener('click', ()=> addPostRow());
@@ -424,10 +408,10 @@ function recalcPost(){
   let total=0;
   $$('#postBody tr').forEach(tr=>{
     const weeks=Math.max(0,parseInt(tr.querySelector('.postWeeks').value||'1',10));
-    let days =Math.max(0,parseInt(tr.querySelector('.postDays').value ||'0',10)); if(days>6) days=6;
-    const factor=weeks + (days/7);
+    let days=Math.max(0,parseInt(tr.querySelector('.postDays').value||'0',10)); if(days>6) days=6;
+    const factor=weeks+(days/7);
     const actual=num(tr.querySelector('.postActual').value);
-    let lost=baseline*factor - actual; if(lost<0) lost=0;
+    let lost = baseline*factor - actual; if(lost<0) lost=0;
     tr.querySelector('.postLost').textContent = fmt(lost);
     total += lost;
   });
@@ -436,6 +420,9 @@ function recalcPost(){
 
 /* =========== Save/Load Form =========== */
 $('#saveFormBtn').addEventListener('click', ()=>{ saveCurrentForm(); alert('Form saved'); });
+
+function getForms(){return JSON.parse(localStorage.getItem('lwForms')||'[]');}
+function setForms(arr){localStorage.setItem('lwForms',JSON.stringify(arr));}
 
 function collectForm(){
   const preWeeks = $$('#preBody tr').map(tr=>({
@@ -467,8 +454,7 @@ function collectForm(){
   };
 }
 function saveCurrentForm(){
-  const forms=getForms();
-  const payload=collectForm();
+  const forms=getForms(); const payload=collectForm();
   if(currentFormId!=null) forms[currentFormId]=payload; else { forms.push(payload); currentFormId=forms.length-1; }
   setForms(forms);
 }
@@ -516,106 +502,194 @@ function clearForm(){
   recalcPre(); recalcPost();
 }
 
-/* =========== Export PDF (with Pre & Post screenshots) =========== */
+/* =========== Export PDF (one statement per page + summary) =========== */
 $('#exportPdfBtn').addEventListener('click', async ()=>{
   saveCurrentForm();
   const form=getForms()[currentFormId];
   const { jsPDF } = window.jspdf;
-  const doc=new jsPDF({unit:'pt',format:'letter'});
-  let y=50;
 
-  // Header
-  doc.setFontSize(16); doc.text('Lost Wages Report',40,y); y+=18;
-  doc.setFontSize(11);
-  doc.text(`Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,40,y); y+=14;
-  doc.text(`Date of Loss: ${form.dateOfLoss||''}`,40,y); y+=14;
+  // Page measurements for US Letter in points
+  const pageW = 612, pageH = 792, margin = 40;
+  const contentW = pageW - margin*2;
+
+  const doc = new jsPDF({ unit:'pt', format:'letter' });
+
+  // Helper: load image
+  const loadImage = (src)=>new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=src; });
+
+  // Header template (logo + header text)
+  async function pageHeader(title, sub){
+    let y = margin;
+    // Logo (optional)
+    try{
+      const img = await loadImage('new%20BLEGAL%20logo.jpg');
+      const logoW = 150;
+      const ratio = logoW / img.width;
+      const logoH = img.height * ratio;
+      doc.addImage(img,'JPEG',margin,y,logoW,logoH);
+      y += logoH + 10;
+    }catch(e){
+      // no logo available
+      y += 10;
+    }
+    doc.setFontSize(16);
+    doc.text(title, margin, y); y += 18;
+    doc.setFontSize(11);
+    (sub||[]).forEach(line => { 
+      const wrapped = doc.splitTextToSize(line, contentW);
+      doc.text(wrapped, margin, y);
+      y += 14 * wrapped.length;
+    });
+    y += 6;
+    return y;
+  }
+
+  // Compute baseline from weekly equivalents
+  function computeBaseline(preWeeks){
+    const eqs=(preWeeks||[]).map(w=>{
+      const weeks=parseInt(w.weeks||1,10)||0;
+      const days =parseInt(w.days ||0,10)||0;
+      const factor=weeks+(days/7);
+      const total=num(w.trips)+num(w.tips);
+      return (total!==0 && factor>0) ? (total/factor) : null;
+    }).filter(v=>v!==null);
+    if(eqs.length===0) return 0;
+    return eqs.reduce((a,b)=>a+b,0)/eqs.length;
+  }
   const baseline = computeBaseline(form.preWeeks||[]);
-  doc.text(`Baseline Weekly Average: $${fmt(baseline)}`,40,y); y+=18;
 
-  // Pre section
-  doc.setFontSize(12); doc.text('Pre-Accident Weeks:',40,y); y+=12;
+  // PRE PAGES (one per statement)
   for(let i=0;i<(form.preWeeks||[]).length;i++){
+    if(i>0) doc.addPage();
     const w=form.preWeeks[i];
-    const factor=(parseInt(w.weeks||1,10)||0)+((parseInt(w.days||0,10)||0)/7);
-    const trips=num(w.trips), tips=num(w.tips), eq= factor>0 ? (trips+tips)/factor : 0;
-    const line=`${i+1}. ${w.start||'—'} to ${w.end||'—'} | factor ${factor.toFixed(2)} | Trips $${fmt(trips)}, Tips $${fmt(tips)} → Weekly Eq. $${fmt(eq)}`;
-    doc.setFontSize(11); doc.text(line,50,y); y+=12;
-    // images
-    for(const dataUrl of (w.images||[])){
-      const img=await loadImage(dataUrl).catch(()=>null); if(!img) continue;
-      const maxW=520, ratio=maxW/img.width, wpt=maxW, hpt=img.height*ratio;
-      if(y+hpt>760){ doc.addPage(); y=50; }
-      doc.addImage(img,'JPEG',40,y,wpt,hpt); y+=hpt+10;
-    }
-    if(y>760){ doc.addPage(); y=50; }
-  }
-  y+=6;
+    let y = await pageHeader('Pre-Accident Statement', [
+      `Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,
+      `Statement: ${w.start||'—'} to ${w.end||'—'}`
+    ]);
 
-  // Post section
-  doc.setFontSize(12); doc.text('Post-Accident Weeks:',40,y); y+=12;
-  let totalLost=0;
-  for(let i=0;i<(form.postWeeks||[]).length;i++){
-    const w=form.postWeeks[i];
-    const factor=(parseInt(w.weeks||1,10)||0)+((parseInt(w.days||0,10)||0)/7);
-    let lost=baseline*factor - num(w.actual); if(lost<0) lost=0;
-    totalLost+=lost;
-    const line=`${i+1}. ${w.start||'—'} to ${w.end||'—'} | factor ${factor.toFixed(2)} | Actual $${fmt(num(w.actual))} → Lost $${fmt(lost)}`;
-    doc.setFontSize(11); doc.text(line,50,y); y+=12;
+    // Details block
+    const weeks = parseInt(w.weeks||1,10)||0;
+    const days  = parseInt(w.days ||0,10)||0;
+    const factor= weeks + (days/7);
+    const trips = num(w.trips), tips = num(w.tips);
+    const eq    = factor>0 ? (trips+tips)/factor : 0;
+
+    doc.setFontSize(12);
+    const detailLines = [
+      `Weeks: ${weeks}    Days: ${days}    Factor: ${factor.toFixed(2)}`,
+      `Trips: $${fmt(trips)}    Tips: $${fmt(tips)}    Weekly Equivalent: $${fmt(eq)}`
+    ];
+    detailLines.forEach(line=>{
+      const wrapped=doc.splitTextToSize(line, contentW);
+      doc.text(wrapped, margin, y); y+=16*wrapped.length;
+    });
+
+    // Images (each scaled to content width)
     for(const dataUrl of (w.images||[])){
-      const img=await loadImage(dataUrl).catch(()=>null); if(!img) continue;
-      const maxW=520, ratio=maxW/img.width, wpt=maxW, hpt=img.height*ratio;
-      if(y+hpt>760){ doc.addPage(); y=50; }
-      doc.addImage(img,'JPEG',40,y,wpt,hpt); y+=hpt+10;
+      try{
+        const img = await loadImage(dataUrl);
+        const maxW = contentW;
+        const ratio = maxW / img.width;
+        const wpt = maxW, hpt = img.height * ratio;
+        if(y + hpt > pageH - margin){ doc.addPage(); y = await pageHeader('Pre-Accident Statement', [
+          `Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,
+          `Statement: ${w.start||'—'} to ${w.end||'—'}`
+        ]); }
+        doc.addImage(img, 'JPEG', margin, y, wpt, hpt);
+        y += hpt + 10;
+      }catch(e){}
     }
-    if(y>760){ doc.addPage(); y=50; }
   }
-  y+=8; if(y>740){ doc.addPage(); y=50; }
-  doc.setFontSize(12); doc.text(`Total Lost Wages: $${fmt(totalLost)}`,40,y); y+=18;
-  doc.setFontSize(10); doc.text('⚖️ This report is an estimate only and is not legal advice.',40,y);
+
+  // POST PAGES (one per statement)
+  let totalLost = 0;
+  for(let i=0;i<(form.postWeeks||[]).length;i++){
+    doc.addPage();
+    const w=form.postWeeks[i];
+    let y = await pageHeader('Post-Accident Statement', [
+      `Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,
+      `Statement: ${w.start||'—'} to ${w.end||'—'}`
+    ]);
+
+    const weeks = parseInt(w.weeks||1,10)||0;
+    const days  = parseInt(w.days ||0,10)||0;
+    const factor= weeks + (days/7);
+    const actual= num(w.actual);
+    let lost = baseline*factor - actual; if(lost<0) lost=0;
+    totalLost += lost;
+
+    doc.setFontSize(12);
+    const detailLines = [
+      `Baseline: $${fmt(baseline)}    Weeks: ${weeks}    Days: ${days}    Factor: ${factor.toFixed(2)}`,
+      `Actual: $${fmt(actual)}    Lost Wages: $${fmt(lost)}`
+    ];
+    detailLines.forEach(line=>{
+      const wrapped=doc.splitTextToSize(line, contentW);
+      doc.text(wrapped, margin, y); y+=16*wrapped.length;
+    });
+
+    for(const dataUrl of (w.images||[])){
+      try{
+        const img = await loadImage(dataUrl);
+        const maxW = contentW;
+        const ratio = maxW / img.width;
+        const wpt = maxW, hpt = img.height * ratio;
+        if(y + hpt > pageH - margin){ doc.addPage(); y = await pageHeader('Post-Accident Statement', [
+          `Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,
+          `Statement: ${w.start||'—'} to ${w.end||'—'}`
+        ]); }
+        doc.addImage(img, 'JPEG', margin, y, wpt, hpt);
+        y += hpt + 10;
+      }catch(e){}
+    }
+  }
+
+  // SUMMARY PAGE
+  doc.addPage();
+  let y = await (async()=>await pageHeader('Summary', [
+    `Client: ${form.clientFirstName||''} ${form.clientLastName||''}`,
+    `Date of Loss: ${form.dateOfLoss||''}`,
+    `Report Date: ${form.reportDate||todayStr()}`
+  ]))();
+
+  const preCount  = (form.preWeeks||[]).filter(w=> num(w.trips)||num(w.tips)).length;
+  const postCount = (form.postWeeks||[]).length;
+  const preTotal  = (form.preWeeks||[]).reduce((s,w)=> s + num(w.trips)+num(w.tips), 0);
+  const postActualTotal = (form.postWeeks||[]).reduce((s,w)=> s + num(w.actual), 0);
+
+  const summaryLines = [
+    `Pre-Accident Statements Count: ${preCount}`,
+    `Post-Accident Statements Count: ${postCount}`,
+    `Baseline Weekly Average: $${fmt(baseline)}`,
+    `Total Pre-Accident Gross (Trips + Tips): $${fmt(preTotal)}`,
+    `Total Actual (Post-Accident): $${fmt(postActualTotal)}`,
+    `Total Lost Wages: $${fmt(totalLost)}`
+  ];
+  doc.setFontSize(12);
+  summaryLines.forEach(line=>{
+    const wrapped=doc.splitTextToSize(line, contentW);
+    doc.text(wrapped, margin, y); y+=16*wrapped.length;
+  });
 
   const fname=(form.clientFirstName||'Client')+'_'+(form.clientLastName||'');
   doc.save(`${fname}_LostWages.pdf`);
 });
 
-function loadImage(src){ return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>res(img); img.onerror=rej; img.src=src; }); }
-function computeBaseline(preWeeks){
-  const eqs=(preWeeks||[]).map(w=>{
-    const weeks=parseInt(w.weeks||1,10)||0, days=parseInt(w.days||0,10)||0;
-    const factor=weeks + (days/7);
-    const trips=num(w.trips), tips=num(w.tips), total=trips+tips;
-    return (total!==0 && factor>0) ? total/factor : null;
-  }).filter(v=>v!==null);
-  if(eqs.length===0) return 0;
-  return eqs.reduce((a,b)=>a+b,0)/eqs.length;
-}
-
-/* =========== Wire-ups =========== */
+/* ======================== Wire-ups ======================== */
 $('#addPreWeekBtn').addEventListener('click', ()=> addPreRow());
 $('#addPostWeekBtn').addEventListener('click', ()=> addPostRow());
 $('#saveFormBtn').addEventListener('click', saveCurrentForm);
 $('#newFormBtn').addEventListener('click', ()=>{ currentFormId=null; clearForm(); $('#reportDate').value=todayStr(); show(formSection); });
 
-/* Init default rows on first new form */
-function initFirst(){
-  // no-op until user creates a form
+/* Initial view */
+function clearForm(){
+  $('#clientFirstName').value=''; $('#clientLastName').value=''; $('#clientDateLoss').value='';
+  $('#reportDate').value=todayStr();
+  preBody.innerHTML=''; postBody.innerHTML='';
+  for(let i=0;i<6;i++) addPreRow();
+  addPostRow();
+  recalcPre(); recalcPost();
 }
-initFirst();
-
-/* Observe when form is shown to fill report date */
-const obs=new MutationObserver(()=>{ if(!formSection.classList.contains('hidden')) $('#reportDate').value=todayStr(); });
-obs.observe(formSection,{attributes:true,attributeFilter:['class']});
-
-/* Dashboard table click */
-$('#formsTable').addEventListener('click', (e)=>{
-  if(e.target.classList.contains('editForm')){ const id=parseInt(e.target.dataset.id,10); const f=getForms()[id]; if(!f) return;
-    if(currentUser.role==='employee' && f.owner!==currentUser.username){ alert('No access'); return; }
-    loadForm(id);
-  }
-  if(e.target.classList.contains('delForm')){ const id=parseInt(e.target.dataset.id,10); const forms=getForms(); const f=forms[id]; if(!f) return;
-    if(currentUser.role==='employee' && f.owner!==currentUser.username){ alert('No access'); return; }
-    if(confirm('Delete this form?')){ forms.splice(id,1); setForms(forms); loadFormsTable(); }
-  }
-});
 </script>
 </body>
 </html>
